@@ -7,7 +7,9 @@ import requests
 
 
 def downloads(verbose=False):
-    r = requests.get("https://api.github.com/repos/ActivityWatch/activitywatch/releases")
+    r = requests.get(
+        "https://api.github.com/repos/ActivityWatch/activitywatch/releases"
+    )
     d = r.json()
 
     downloads = 0
@@ -32,14 +34,18 @@ def stars():
 
 def clones():
     # TODO: Needs push access to the repository
-    r = requests.get("https://api.github.com/repos/ActivityWatch/activitywatch/traffic/clones?per=day")
+    r = requests.get(
+        "https://api.github.com/repos/ActivityWatch/activitywatch/traffic/clones?per=day"
+    )
     d = r.json()
     pprint(d)
 
 
 def twitter():
     # TODO: Needs API key
-    r = requests.get("https://api.twitter.com/1.1/users/show.json?screen_name=ActivityWatchIt")
+    r = requests.get(
+        "https://api.twitter.com/1.1/users/show.json?screen_name=ActivityWatchIt"
+    )
     d = r.json()
     pprint(d)
     followers = d["followers_count"]
@@ -51,7 +57,7 @@ if __name__ == "__main__":
     d = downloads()
 
     if "--csv" in sys.argv:
-        print("{},{},{}".format(datetime.now(tz=timezone.utc).isoformat(), d, s))
+        print(f"{datetime.now(tz=timezone.utc)},{d},{s}")
     else:
         print("Downloads: ", d)
         print("Stars:     ", s)
