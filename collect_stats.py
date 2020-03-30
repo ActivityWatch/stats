@@ -57,7 +57,7 @@ if __name__ == "__main__":
     d = downloads()
 
     if "--csv" in sys.argv:
-        print(f"{datetime.now(tz=timezone.utc)},{d},{s}")
+        print(f"{datetime.now(tz=timezone.utc).isoformat()},{d},{s}")
     else:
         print("Downloads: ", d)
         print("Stars:     ", s)
