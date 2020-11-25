@@ -5,7 +5,7 @@ name: Collect stats
 
 on:
   schedule:
-    - cron:  '0 0 * * *'
+    - cron:  '0 */6 * * *'
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
       run: poetry run python3 collect_stats.py --csv >> data/stats.csv
     - name: Commit
       run: |
-        git config --local user.email "action@github.com"
+        git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
         git add data/stats.csv
         git commit -m "chore: update stats"
