@@ -4,6 +4,11 @@
 name: Collect stats
 
 on:
+  push:
+    branches: [ master ]
+  # Don't activate until pushing has been disabled for PRs
+  #pull_requests:
+  #  branches: [ master ]
   schedule:
     - cron:  '0 */6 * * *'
 
