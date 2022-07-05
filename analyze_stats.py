@@ -43,12 +43,14 @@ def test_load():
 @click.option("--since", type=click.DateTime(["%Y-%m-%d"]))
 @click.option("--per-day", is_flag=True)
 @click.option("--resample", default="1D")
+@click.option("--title")
 def main(
     column: str = None,
     save: str = None,
     since: datetime = None,
     per_day: bool = False,
     resample: str = "1D",
+    title: str = None,
 ):
     n_plots = 2 if per_day else 1
 
@@ -68,7 +70,7 @@ def main(
     plt.figure(figsize=(8, 2.5 * n_plots))
     ax1 = plt.subplot(n_plots, 1, 1)
     df.plot(ax=ax1, title=column)
-    ax1.set_title("Cumulative")
+    ax1.set_title(title if title is not None else "Cumulative")
     ax1.set_ylim(0)
     ax1.legend()
 
