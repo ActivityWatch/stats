@@ -86,7 +86,7 @@ def releases():
 if __name__ == "__main__":
     if "--releases" in sys.argv:
         if "--csv" in sys.argv:
-            print("tag,date")
+            print("date,tag")
             for tag, d in sorted(releases().items(), key=lambda x: x[1]):
                 print(f"{d},{tag}")
         else:
