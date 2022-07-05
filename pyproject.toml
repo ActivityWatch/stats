@@ -5,7 +5,7 @@ description = ""
 authors = ["Erik Bjäreholt <erik@bjareho.lt>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 requests = "*"
 pandas = "*"
 matplotlib = "*"

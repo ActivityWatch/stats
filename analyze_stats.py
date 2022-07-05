@@ -41,18 +41,25 @@ def test_load():
 @click.option("--column")
 @click.option("--save")
 @click.option("--since", type=click.DateTime(["%Y-%m-%d"]))
-def main(column: str = None, save: str = None, since: datetime = None):
-    n_plots = 2
+@click.option("--per-day", is_flag=True)
+@click.option("--resample", default="1D")
+def main(
+    column: str = None,
+    save: str = None,
+    since: datetime = None,
+    per_day: bool = False,
+    resample: str = "1D",
+):
+    n_plots = 2 if per_day else 1
 
     df = _load_data()
-    df = df.resample("1D").mean()
+    df = df.resample(resample).mean()
     df = df.interpolate(method="time")  # interpolate missing dates
 
     if column:
         if column not in df:
-            raise Exception(
-                f"No such column '{column}', try one of: {list(df.columns)}"
-            )
+            print(f"Error: No such column '{column}', try one of: {list(df.columns)}")
+            exit(1)
         df = df[column]
 
     if since:
