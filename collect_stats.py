@@ -8,7 +8,7 @@ import requests
 
 def downloads(verbose=False):
     r = requests.get(
-        "https://api.github.com/repos/ActivityWatch/activitywatch/releases"
+        "https://api.github.com/repos/ActivityWatch/activitywatch/releases?per_page=100"
     )
     d = r.json()
 
