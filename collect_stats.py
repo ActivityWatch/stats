@@ -58,7 +58,7 @@ def releases():
     NOTE: Needs to use the commit date, not the release date, for some releases that had to be re-released (like v0.10.0).
     """
     r = requests.get(
-        "https://api.github.com/repos/ActivityWatch/activitywatch/releases"
+        "https://api.github.com/repos/ActivityWatch/activitywatch/releases?per_page=100"
     )
     r.raise_for_status()
     d = r.json()
