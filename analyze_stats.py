@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+
+import click
 import matplotlib.pyplot as plt
 import pandas as pd
-import click
 
 
 def _load_downloads():
@@ -67,11 +68,14 @@ def main(
     if since:
         df = df.truncate(before=since)
 
+    gridargs = dict(axis="both", linestyle="--", linewidth=1, alpha=0.4)
+
     plt.figure(figsize=(8, 2.5 * n_plots))
     ax1 = plt.subplot(n_plots, 1, 1)
     df.plot(ax=ax1, title=column)
     ax1.set_title(title if title is not None else "Cumulative")
     ax1.set_ylim(0)
+    ax1.grid(True, which="major", **gridargs)
     ax1.legend()
 
     if n_plots >= 2:
@@ -83,6 +87,7 @@ def main(
         df_w.plot(ax=ax)
         ax.set_title("Per week (rolling)")
         ax.set_ylim(0)
+        ax.grid(True, which="major", **gridargs)
         ax.legend()
 
     # if n_plots >= 2:
