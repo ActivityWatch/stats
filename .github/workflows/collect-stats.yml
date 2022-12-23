@@ -32,7 +32,9 @@ jobs:
     - name: Collect and append stats
       run: |
         poetry run python3 collect_stats.py --csv >> data/stats.csv
-        poetry run python3 collect_stats.py --releases --csv > data/releases.csv
+        # This has started causing "rate-limit exceeded", breaking CI.
+        # TODO: Needs to be done smarter.
+        #poetry run python3 collect_stats.py --releases --csv > data/releases.csv
     - name: Commit
       run: |
         git config --local user.email "noreply@github.com"
