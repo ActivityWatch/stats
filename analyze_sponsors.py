@@ -153,8 +153,12 @@ def load_patreon_csv(filename: str) -> list[Sponsor]:
 if __name__ == "__main__":
     now = datetime.now(tz=timezone.utc)
 
-    sponsors = load_github_sponsors_csv(
+    sponsors = []
+    sponsors += load_github_sponsors_csv(
         "data/sponsors/ActivityWatch-sponsorships-all-time.csv"
+    )
+    sponsors += load_github_sponsors_csv(
+        "data/sponsors/ErikBjare-sponsorships-all-time.csv"
     )
     sponsors += load_opencollective_csv(
         "data/sponsors/opencollective-activitywatch-transactions.csv"
