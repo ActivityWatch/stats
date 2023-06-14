@@ -15,12 +15,13 @@ Currency = str
 @dataclass
 class Sponsor:
     name: str
-    github_username: Optional[str] = None
     donated: list[tuple[Amount, Currency, datetime]] = field(default_factory=list)
+    github_username: Optional[str] = None
+    url: Optional[str] = None
     source: str = "unknown"
 
     def __repr__(self):
-        return f"<Sponsor {self.name} ({self.github_username}) on {self.source} total_donated={self.total_donated}>"
+        return f"<Sponsor {self.name} ({self.github_username or self.url}) on {self.source} total_donated={self.total_donated}>"
 
     @property
     def total_donated(self):
@@ -32,6 +33,21 @@ class Sponsor:
                 [amount for amount, c, _ in self.donated if c == currency]
             )
         return total_donated
+
+    @property
+    def total_donated_usd(self):
+        """Tries to approximately convert all currencies to USD"""
+        value = 0
+        for currency, amount in self.total_donated.items():
+            if currency == "USD":
+                value += amount
+            elif currency == "EUR":
+                value += amount * 1.08
+            elif currency == "GBP":
+                value += amount * 1.25
+            else:
+                raise ValueError(f"Unknown currency {currency}")
+        return value
 
 
 def load_github_sponsors_csv(filename: str) -> list[Sponsor]:
@@ -113,10 +129,28 @@ def load_opencollective_csv(filename: str) -> list[Sponsor]:
     # remove 'GitHub Sponsors' from sponsors
     sponsors = [sponsor for sponsor in sponsors if sponsor.name != "GitHub Sponsors"]
 
-    # subtract $3002 from Kerkko (actually FUUG.fi)
+    # subtract $3000 from Kerkko (actually 3000 EUR from FUUG.fi)
     for sponsor in sponsors:
         if sponsor.name == "Kerkko Pelttari":
-            sponsor.donated.append((-3002, "USD", datetime.now(tz=timezone.utc)))
+            sponsor.donated.append((-3000, "EUR", datetime.now(tz=timezone.utc)))
+
+    # add FUUG.fi and Ghent University manually
+    sponsors.append(
+        Sponsor(
+            name="FUUG.fi",
+            donated=[(3000, "EUR", datetime(2020, 4, 1, tzinfo=timezone.utc))],
+            url="https://fuug.fi/",
+            source="manual",
+        )
+    )
+    sponsors.append(
+        Sponsor(
+            name="Ghent University",
+            donated=[(500, "EUR", datetime(2023, 5, 1, tzinfo=timezone.utc))],
+            url="https://www.ugent.be/",
+            source="manual",
+        )
+    )
 
     return sponsors
 
@@ -164,25 +198,26 @@ if __name__ == "__main__":
         "data/sponsors/opencollective-activitywatch-transactions.csv"
     )
     sponsors += load_patreon_csv("data/sponsors/patreon-members-866337.csv")
-    sponsors = sorted(sponsors, key=lambda s: s.total_donated["USD"], reverse=True)
+    sponsors = sorted(sponsors, key=lambda s: s.total_donated_usd, reverse=True)
 
     # filter out sponsors who have donated less than $10
-    sponsors = [sponsor for sponsor in sponsors if sponsor.total_donated["USD"] >= 10]
+    sponsors = [sponsor for sponsor in sponsors if sponsor.total_donated_usd >= 10]
 
     # print as markdown table
     print("| Name | Active? | Total Donated |")
     print("| ---- |:-------:| -------------:|")
     for sponsor in sponsors:
-        link = (
-            f"([@{sponsor.github_username}](https://github.com/{sponsor.github_username}))"
-            if sponsor.github_username
-            else ""
-        )
+        ident = f"{sponsor.name}"
+        if sponsor.github_username:
+            ident = f"{sponsor.name} [@{sponsor.github_username}](https://github.com/{sponsor.github_username})"
+        elif sponsor.url:
+            ident = f"[{sponsor.name}]({sponsor.url})"
+
         # active if last donation was less than 3 months ago
         last_donation: datetime = max(timestamp for _, _, timestamp in sponsor.donated)
         is_active = (
             last_donation > now - timedelta(days=90) if sponsor.donated else False
         )
         print(
-            f"| {sponsor.name} {link} | {'✔️' if is_active else ''} | {sponsor.total_donated['USD']:.2f} USD |"
+            f"| {ident} | {'✔️' if is_active else ''} | {sponsor.total_donated_usd:.2f} USD |"
         )
