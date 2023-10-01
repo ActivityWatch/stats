@@ -209,7 +209,7 @@ if __name__ == "__main__":
     for sponsor in sponsors:
         ident = f"{sponsor.name}"
         if sponsor.github_username:
-            ident = f"{sponsor.name} [@{sponsor.github_username}](https://github.com/{sponsor.github_username})"
+            ident = f"{sponsor.name} ([@{sponsor.github_username}](https://github.com/{sponsor.github_username}))"
         elif sponsor.url:
             ident = f"[{sponsor.name}]({sponsor.url})"
 
