@@ -7,6 +7,7 @@ import pandas as pd
 
 def _load_downloads():
     df = pd.read_csv("data/stats.csv", index_col="timestamp", parse_dates=True)
+    df.index = pd.to_datetime(df.index, format="ISO8601", utc=True)
     return df
 
 
@@ -24,11 +25,21 @@ def _load_chrome():
     return df
 
 
+def _load_android():
+    df = pd.read_csv("data/android/installed.csv", index_col="Date", parse_dates=True)
+    df = df.tz_localize(tz=timezone.utc)
+    df.drop(columns=["Notes"], inplace=True)
+    col_name = "Installed Android devices"
+    df.columns = [col_name]
+    return df
+
+
 def _load_data():
     df = _load_downloads()
     df = df.resample("1D").mean()
     df = df.merge(_load_chrome(), how="outer", left_index=True, right_index=True)
     df = df.merge(_load_firefox(), how="outer", left_index=True, right_index=True)
+    df = df.merge(_load_android(), how="outer", left_index=True, right_index=True)
     return df
 
 
@@ -36,6 +47,11 @@ def test_load():
     _load_downloads()
     _load_chrome()
     _load_firefox()
+    _load_android()
+
+
+def test_load_all():
+    _load_data()
 
 
 @click.command()
