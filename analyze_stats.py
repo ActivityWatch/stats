@@ -82,7 +82,7 @@ def main(
         df = df[column]
 
     if since:
-        df = df.truncate(before=since)
+        df = df.truncate(before=since.astimezone(timezone.utc))
 
     gridargs = dict(axis="both", linestyle="--", linewidth=1, alpha=0.4)
 
