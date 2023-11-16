@@ -29,7 +29,7 @@ def _load_android():
     df = pd.read_csv("data/android/installed.csv", index_col="Date", parse_dates=True)
     df = df.tz_localize(tz=timezone.utc)
     df.drop(columns=["Notes"], inplace=True)
-    col_name = "Installed Android devices"
+    col_name = "Android installed devices"
     df.columns = [col_name]
     return df
 
