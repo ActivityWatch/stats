@@ -10,6 +10,7 @@ def downloads(verbose=False):
     r = requests.get(
         "https://api.github.com/repos/ActivityWatch/activitywatch/releases?per_page=100"
     )
+    r.raise_for_status()
     d = r.json()
 
     downloads = 0
@@ -17,18 +18,24 @@ def downloads(verbose=False):
         if verbose:
             print("Release: ", release["tag_name"])
         for asset in release["assets"]:
-            platform = re.findall("(macos|darwin|linux|windows)", asset["name"])[0]
+            platform_match = re.findall("(macos|darwin|linux|windows)", asset["name"])
             count = asset["download_count"]
             if verbose:
+                platform = platform_match[0] if platform_match else "unknown"
                 print(" - {}: {}".format(platform, count))
 
-            downloads += asset["download_count"]
+            downloads += count
     return downloads
 
 
 def stars():
     r = requests.get("https://api.github.com/repos/ActivityWatch/activitywatch")
+    r.raise_for_status()
     d = r.json()
+    if "stargazers_count" not in d:
+        raise RuntimeError(
+            f"GitHub API did not return stargazers_count: {d.get('message', 'unknown response')}"
+        )
     return d["stargazers_count"]
 
 
