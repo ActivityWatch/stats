@@ -30,6 +30,8 @@ jobs:
     - name: Install dependencies
       run: poetry install
     - name: Collect and append stats
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         poetry run python3 collect_stats.py --csv >> data/stats.csv
         # This has started causing "rate-limit exceeded", breaking CI.
