@@ -158,10 +158,13 @@ def main(
         df_w = df.diff()
         df_w = df_w[df_w > 0]  # Filter out the crazy outlier
         df_w = df_w.resample("1D").mean()
+        # Always smooth out the day-to-day noise; per-week is the same daily
+        # rate scaled up by 7, not a different (jagged) series.
+        df_w = df_w.rolling("7D").mean()
         if per_week:
-            df_w = df_w.rolling("7D").mean() * 7
+            df_w = df_w * 7
         df_w.plot(ax=ax)
-        ax.set_title(f"Per {'week' if per_week else 'day'} (rolling)")
+        ax.set_title(f"Per {'week' if per_week else 'day'} (7d rolling mean)")
         ax.set_ylim(0)
         ax.grid(True, which="major", **gridargs)
         ax.legend()
