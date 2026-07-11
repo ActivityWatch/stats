@@ -9,17 +9,40 @@ import requests
 
 ASSETS_CSV = "data/stats-assets.csv"
 ASSET_FIELDS = ["timestamp", "tag", "asset", "platform", "downloads"]
+# per_page maxes at 100; github_get_all() follows pagination beyond that.
+RELEASES_PATH = "/repos/ActivityWatch/activitywatch/releases?per_page=100"
 
 
-def github_get(path: str):
+def _github_headers() -> dict:
     headers = {"Accept": "application/vnd.github+json"}
     token = os.getenv("GITHUB_TOKEN")
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    return headers
 
-    response = requests.get(f"https://api.github.com{path}", headers=headers, timeout=30)
+
+def github_get(path: str):
+    response = requests.get(
+        f"https://api.github.com{path}", headers=_github_headers(), timeout=30
+    )
     response.raise_for_status()
     return response.json()
+
+
+def github_get_all(path: str) -> list:
+    """
+    GET every page of a paginated GitHub list endpoint, following the `Link`
+    headers. Needed because per_page caps at 100, so once there are >100
+    releases a single request would silently truncate the list.
+    """
+    items: list = []
+    url = f"https://api.github.com{path}"
+    while url:
+        response = requests.get(url, headers=_github_headers(), timeout=30)
+        response.raise_for_status()
+        items.extend(response.json())
+        url = response.links.get("next", {}).get("url")
+    return items
 
 
 def platform(asset_name: str) -> str:
@@ -33,13 +56,13 @@ def platform(asset_name: str) -> str:
 
 def downloads_by_asset() -> list[dict]:
     """
-    Per-asset download counts across all releases, from a single API call.
+    Per-asset download counts across all releases.
 
     Returns a list of {tag, asset, platform, downloads} dicts. This is the raw
     source data; platform totals and per-version-per-platform breakdowns are
     aggregations of it (see analyze_stats.py).
     """
-    d = github_get("/repos/ActivityWatch/activitywatch/releases?per_page=100")
+    d = github_get_all(RELEASES_PATH)
     rows = []
     for release in d:
         tag = release["tag_name"]
@@ -129,7 +152,7 @@ def releases(known: dict[str, date] | None = None):
     rate limit and break CI.
     """
     known = known or {}
-    d = github_get("/repos/ActivityWatch/activitywatch/releases?per_page=100")
+    d = github_get_all(RELEASES_PATH)
 
     releases: dict[str, date] = {}
     for release in d:
