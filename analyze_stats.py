@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import click
 import matplotlib.pyplot as plt
@@ -59,6 +59,7 @@ def test_load_all():
 @click.option("--save")
 @click.option("--since", type=click.DateTime(["%Y-%m-%d"]))
 @click.option("--per-day", is_flag=True)
+@click.option("--per-week", is_flag=True)
 @click.option("--resample", default="1D")
 @click.option("--title")
 def main(
@@ -66,10 +67,11 @@ def main(
     save: str = None,
     since: datetime = None,
     per_day: bool = False,
+    per_week: bool = False,
     resample: str = "1D",
     title: str = None,
 ):
-    n_plots = 2 if per_day else 1
+    n_plots = 2 if per_day or per_week else 1
 
     df = _load_data()
     df = df.resample(resample).mean()
@@ -99,9 +101,10 @@ def main(
         df_w = df.diff()
         df_w = df_w[df_w > 0]  # Filter out the crazy outlier
         df_w = df_w.resample("1D").mean()
-        df_w = df_w.rolling("7D").mean() * 7
+        if per_week:
+            df_w = df_w.rolling("7D").mean() * 7
         df_w.plot(ax=ax)
-        ax.set_title("Per week (rolling)")
+        ax.set_title(f"Per {'week' if per_week else 'day'} (rolling)")
         ax.set_ylim(0)
         ax.grid(True, which="major", **gridargs)
         ax.legend()
@@ -126,5 +129,29 @@ def main(
         plt.show()
 
 
+def calculate_goal_date(df, goal, sample_days=90):
+    # Get the last date and its corresponding downloads
+    last_date = df.index[-1]
+    last = df.iloc[-1]
+
+    # Calculate the daily download rate based on the last `sample_days` days
+    daily_rate = df[-sample_days:].diff().mean()
+
+    # Calculate the number of days until we reach the goal
+    days_until_goal = (goal - last) / daily_rate
+
+    # Calculate the date when we'll reach the goal
+    date_goal = last_date + timedelta(days=days_until_goal)
+
+    return date_goal
+
+
 if __name__ == "__main__":
+    df = _load_data()
+    print(
+        f"Estimated date to reach 1,000,000 downloads: {calculate_goal_date(df['downloads'], 1000000)}"
+    )
+    print(
+        f"Estimated date to reach 10,000 stars: {calculate_goal_date(df['stars'], 10000)}"
+    )
     main()

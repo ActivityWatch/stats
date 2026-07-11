@@ -1,17 +1,12 @@
-[tool.poetry]
+[project]
 name = "aw-stats"
 version = "0.1.0"
-description = ""
-authors = ["Erik Bjäreholt <erik@bjareho.lt>"]
-package-mode = false
-
-[tool.poetry.dependencies]
-python = "^3.9"
-requests = "*"
-pandas = "*"
-matplotlib = "*"
-click = "*"
-
-[build-system]
-requires = ["poetry-core>=2.0"]
-build-backend = "poetry.core.masonry.api"
+description = "Scripts for collecting and analyzing ActivityWatch usage stats"
+authors = [{ name = "Erik Bjäreholt", email = "erik@bjareho.lt" }]
+requires-python = ">=3.9"
+dependencies = [
+    "requests",
+    "pandas",
+    "matplotlib",
+    "click",
+]

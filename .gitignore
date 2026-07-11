@@ -1,3 +1,16 @@
 __pycache__
 *.png
 output
+
+# Python / uv
+.venv
+
+# Raw data exports — kept locally for reference, not committed.
+# The committed CSVs (firefox-daily-users.csv, chrome-weekly-users.csv,
+# android/installed.csv) are derived from these.
+data/firefox/
+data/chrome/
+data/sponsors/
+data/android/*
+!data/android/installed.csv
+data/spreadsheet.csv
