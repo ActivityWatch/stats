@@ -62,20 +62,46 @@ def twitter():
     print("Followers: ", followers)
 
 
-def releases():
+def load_releases_csv(path: str) -> dict[str, date]:
+    """Load already-known release dates from a `date,tag` CSV, keyed by tag."""
+    known: dict[str, date] = {}
+    if not os.path.exists(path):
+        return known
+    with open(path) as f:
+        next(f, None)  # skip header
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            d, tag = line.split(",")
+            known[tag] = date.fromisoformat(d)
+    return known
+
+
+def releases(known: dict[str, date] | None = None):
     """
     Fetch all releases and their dates from the GitHub API.
     NOTE: Needs to use the commit date, not the release date, for some releases that had to be re-released (like v0.10.0).
+
+    Release/tag dates never change, so we only fetch the commit for tags not
+    already in `known`. This keeps the steady-state cost at a single API call
+    (the releases list) instead of one-per-release, which used to exhaust the
+    rate limit and break CI.
     """
+    known = known or {}
     d = github_get("/repos/ActivityWatch/activitywatch/releases?per_page=100")
 
     releases: dict[str, date] = {}
     for release in d:
+        tag = release["tag_name"]
+        if tag in known:
+            releases[tag] = known[tag]
+            continue
         # We need to fetch the commit of the tag and use its date
         commit = github_get(
-            "/repos/ActivityWatch/activitywatch/commits/" + release["tag_name"]
+            "/repos/ActivityWatch/activitywatch/commits/" + tag
         )
-        releases[release["tag_name"]] = (
+        releases[tag] = (
             datetime.strptime(
                 commit["commit"]["committer"]["date"],
                 "%Y-%m-%dT%H:%M:%SZ",
@@ -88,12 +114,15 @@ def releases():
 
 if __name__ == "__main__":
     if "--releases" in sys.argv:
+        # Reuse dates already collected so we only hit the API for new releases.
+        known = load_releases_csv("data/releases.csv")
+        rels = releases(known)
         if "--csv" in sys.argv:
             print("date,tag")
-            for tag, d in sorted(releases().items(), key=lambda x: x[1]):
+            for tag, d in sorted(rels.items(), key=lambda x: x[1]):
                 print(f"{d},{tag}")
         else:
-            pprint(releases())
+            pprint(rels)
     else:
         s = stars()
         d = downloads()
