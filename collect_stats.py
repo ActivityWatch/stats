@@ -1,3 +1,4 @@
+import csv
 import re
 from pprint import pprint
 import sys
@@ -5,6 +6,9 @@ import os
 from datetime import datetime, timezone, date
 
 import requests
+
+ASSETS_CSV = "data/stats-assets.csv"
+ASSET_FIELDS = ["timestamp", "tag", "asset", "platform", "downloads"]
 
 
 def github_get(path: str):
@@ -18,22 +22,58 @@ def github_get(path: str):
     return response.json()
 
 
-def downloads(verbose=False):
+def platform(asset_name: str) -> str:
+    """Infer the OS/platform from a release asset filename."""
+    m = re.search(r"(macos|darwin|linux|windows)", asset_name)
+    if not m:
+        return "unknown"
+    # Older assets used "darwin" rather than "macos" for the same platform.
+    return "macos" if m.group(1) == "darwin" else m.group(1)
+
+
+def downloads_by_asset() -> list[dict]:
+    """
+    Per-asset download counts across all releases, from a single API call.
+
+    Returns a list of {tag, asset, platform, downloads} dicts. This is the raw
+    source data; platform totals and per-version-per-platform breakdowns are
+    aggregations of it (see analyze_stats.py).
+    """
     d = github_get("/repos/ActivityWatch/activitywatch/releases?per_page=100")
-
-    downloads = 0
+    rows = []
     for release in d:
-        if verbose:
-            print("Release: ", release["tag_name"])
+        tag = release["tag_name"]
         for asset in release["assets"]:
-            platform_match = re.findall("(macos|darwin|linux|windows)", asset["name"])
-            count = asset["download_count"]
-            if verbose:
-                platform = platform_match[0] if platform_match else "unknown"
-                print(" - {}: {}".format(platform, count))
+            rows.append(
+                {
+                    "tag": tag,
+                    "asset": asset["name"],
+                    "platform": platform(asset["name"]),
+                    "downloads": asset["download_count"],
+                }
+            )
+    return rows
 
-            downloads += count
-    return downloads
+
+def downloads(verbose=False) -> int:
+    """Total downloads across all release assets."""
+    total = 0
+    for r in downloads_by_asset():
+        if verbose:
+            print(f' - {r["tag"]} [{r["platform"]}] {r["asset"]}: {r["downloads"]}')
+        total += r["downloads"]
+    return total
+
+
+def load_asset_counts(path: str) -> dict[tuple[str, str], int]:
+    """Last-known download count per (tag, asset) from the assets CSV."""
+    last: dict[tuple[str, str], int] = {}
+    if not os.path.exists(path):
+        return last
+    with open(path, newline="") as f:
+        for row in csv.DictReader(f):
+            last[(row["tag"], row["asset"])] = int(row["downloads"])
+    return last
 
 
 def stars():
@@ -123,6 +163,25 @@ if __name__ == "__main__":
                 print(f"{d},{tag}")
         else:
             pprint(rels)
+    elif "--assets" in sys.argv:
+        # Log per-asset download counts as an append-only time series. Only
+        # emit assets whose count changed since last logged, so old releases
+        # (which no longer gain downloads) don't bloat the CSV every run.
+        last = load_asset_counts(ASSETS_CSV)
+        ts = datetime.now(tz=timezone.utc).isoformat()
+        changed = [
+            r
+            for r in downloads_by_asset()
+            if last.get((r["tag"], r["asset"])) != r["downloads"]
+        ]
+        if "--csv" in sys.argv:
+            # Emit data rows only; the committed CSV carries the header and CI
+            # appends to it (like data/stats.csv).
+            w = csv.writer(sys.stdout, lineterminator="\n")
+            for r in sorted(changed, key=lambda r: (r["tag"], r["asset"])):
+                w.writerow([ts, r["tag"], r["asset"], r["platform"], r["downloads"]])
+        else:
+            pprint(changed)
     else:
         s = stars()
         d = downloads()
