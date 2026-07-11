@@ -10,3 +10,10 @@ dependencies = [
     "matplotlib",
     "click",
 ]
+
+# This project is a set of scripts, not an installable package. package-mode is
+# a poetry-specific setting; it's kept so downstream consumers that run
+# `poetry install` (e.g. the activitywatch.github.io site build) don't fail
+# trying to install a non-existent "aw-stats" package. uv reads [project] above.
+[tool.poetry]
+package-mode = false
