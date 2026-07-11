@@ -34,6 +34,60 @@ def _load_android():
     return df
 
 
+def _load_assets():
+    """Raw per-asset download counts over time (long format).
+
+    Columns: timestamp, tag, asset, platform, downloads. The collector logs an
+    asset only when its count changes, so this is sparse — see _asset_series()
+    for the forward-filled reconstruction.
+    """
+    df = pd.read_csv("data/stats-assets.csv")
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    return df
+
+
+def _asset_series(df=None):
+    """Wide per-(tag, asset) download counts, forward-filled over time.
+
+    Reconstructs each asset's running total at every observed timestamp from
+    the change-only log.
+    """
+    df = _load_assets() if df is None else df
+    return (
+        df.pivot_table(index="timestamp", columns=["tag", "asset"], values="downloads")
+        .sort_index()
+        .ffill()
+    )
+
+
+def _asset_meta(df):
+    """Per-(tag, asset) metadata (platform), aligned to _asset_series columns."""
+    meta = df.drop_duplicates(["tag", "asset"]).set_index(["tag", "asset"])[["platform"]]
+    return meta.reindex(_asset_series(df).columns)
+
+
+def platform_totals(df=None):
+    """Time series of total downloads per platform."""
+    df = _load_assets() if df is None else df
+    wide = _asset_series(df)
+    plat = _asset_meta(df)["platform"]
+    totals = wide.T.groupby(plat.values).sum().T
+    totals.columns.name = "platform"
+    return totals
+
+
+def version_platform_totals(df=None):
+    """Time series of downloads per (version, platform)."""
+    df = _load_assets() if df is None else df
+    meta = _asset_meta(df)
+    wt = _asset_series(df).T
+    wt.index = pd.MultiIndex.from_arrays(
+        [meta.index.get_level_values("tag"), meta["platform"].values],
+        names=["tag", "platform"],
+    )
+    return wt.groupby(level=["tag", "platform"]).sum().T
+
+
 def _load_data():
     df = _load_downloads()
     df = df.resample("1D").mean()
@@ -48,6 +102,9 @@ def test_load():
     _load_chrome()
     _load_firefox()
     _load_android()
+    _load_assets()
+    platform_totals()
+    version_platform_totals()
 
 
 def test_load_all():
