@@ -34,7 +34,7 @@ shown in the Play Console headline).
 """
 from __future__ import annotations
 
-import sys
+import os
 from datetime import date, timedelta
 
 import click
@@ -43,6 +43,8 @@ import requests
 SCOPE = "https://www.googleapis.com/auth/playdeveloperreporting"
 BASE = "https://playdeveloperreporting.googleapis.com/v1beta1"
 DEFAULT_PACKAGE = "net.activitywatch.android"
+# Consistent key location shared by local runs, agents, and CI.
+DEFAULT_CREDENTIALS = os.path.expanduser("~/.config/activitywatch/play-sa.json")
 
 # command -> (metric-set resource, default metric, human label)
 METRIC_SETS = {
@@ -57,6 +59,9 @@ def _access_token(credentials: str | None) -> str:
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
 
+    credentials = credentials or (
+        DEFAULT_CREDENTIALS if os.path.exists(DEFAULT_CREDENTIALS) else None
+    )
     if credentials:
         creds = service_account.Credentials.from_service_account_file(
             credentials, scopes=[SCOPE]
@@ -67,19 +72,43 @@ def _access_token(credentials: str | None) -> str:
     return creds.token
 
 
-def _build_request(package: str, metric_set: str, metric: str, days: int) -> tuple[str, dict]:
-    end = date.today()
+def _datetime(d: date, tz: dict | None) -> dict:
+    out = {"year": d.year, "month": d.month, "day": d.day}
+    if tz:
+        out["timeZone"] = tz
+    return out
+
+
+def _build_body(end_dt: dict, days: int, metric: str) -> dict:
+    """Build a query body for the DAILY window ending at `end_dt` (a DateTime)."""
+    end = date(end_dt["year"], end_dt["month"], end_dt["day"])
+    tz = end_dt.get("timeZone")
     start = end - timedelta(days=days)
-    url = f"{BASE}/apps/{package}/{metric_set}:query"
-    body = {
+    return {
         "timelineSpec": {
             "aggregationPeriod": "DAILY",
-            "startTime": {"year": start.year, "month": start.month, "day": start.day},
-            "endTime": {"year": end.year, "month": end.month, "day": end.day},
+            "startTime": _datetime(start, tz),
+            "endTime": _datetime(end, tz),
         },
         "metrics": [metric],
     }
-    return url, body
+
+
+def _daily_freshness(base: str, metric_set: str, token: str) -> dict | None:
+    """Latest available DAILY end date (a DateTime with its timeZone).
+
+    The API rejects queries whose endTime is past this, and DAILY data is
+    reported in a specific timezone (e.g. America/Los_Angeles), so we anchor
+    the query to it rather than guessing 'today'.
+    """
+    r = requests.get(
+        f"{base}/{metric_set}", headers={"Authorization": f"Bearer {token}"}, timeout=30
+    )
+    r.raise_for_status()
+    for fr in r.json().get("freshnessInfo", {}).get("freshnesses", []):
+        if fr.get("aggregationPeriod") == "DAILY":
+            return fr.get("latestEndTime")
+    return None
 
 
 def _parse_rows(rows: list, metric: str) -> list[tuple[str, float | None]]:
@@ -98,9 +127,14 @@ def _parse_rows(rows: list, metric: str) -> list[tuple[str, float | None]]:
 
 
 def fetch_metric(package, metric_set, metric, days, credentials):
-    url, body = _build_request(package, metric_set, metric, days)
     token = _access_token(credentials)
+    base = f"{BASE}/apps/{package}"
+    end_dt = _daily_freshness(base, metric_set, token)
+    if not end_dt:
+        raise SystemExit(f"No DAILY freshness available for {metric_set}")
+    body = _build_body(end_dt, days, metric)
     headers = {"Authorization": f"Bearer {token}"}
+    url = f"{base}/{metric_set}:query"
     rows, page_token = [], None
     while True:
         payload = dict(body, **({"pageToken": page_token} if page_token else {}))
@@ -135,9 +169,13 @@ def _with_common(f):
 
 def _emit(metric_set, metric, label, package, days, credentials, as_csv, dry_run):
     if dry_run:
-        url, body = _build_request(package, metric_set, metric, days)
         import json
-        click.echo(f"POST {url}")
+        today = date.today()
+        # Live requests anchor endTime to the API's freshness date; here we
+        # just preview the shape with today's date.
+        body = _build_body({"year": today.year, "month": today.month, "day": today.day},
+                           days, metric)
+        click.echo(f"POST {BASE}/apps/{package}/{metric_set}:query")
         click.echo(json.dumps(body, indent=2))
         return
     series = fetch_metric(package, metric_set, metric, days, credentials)

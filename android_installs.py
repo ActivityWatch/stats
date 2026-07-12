@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import csv
 import io
+import os
 from urllib.parse import quote
 
 import click
@@ -44,6 +45,8 @@ SCOPE = "https://www.googleapis.com/auth/devstorage.read_only"
 GCS = "https://storage.googleapis.com/storage/v1"
 DEFAULT_PACKAGE = "net.activitywatch.android"
 CANON = "data/android/installed.csv"
+# Consistent key location shared by local runs, agents, and CI.
+DEFAULT_CREDENTIALS = os.path.expanduser("~/.config/activitywatch/play-sa.json")
 DEFAULT_METRIC_COLUMN = "Active Device Installs"
 INSTALLED_HEADER = [
     "Date",
@@ -57,6 +60,9 @@ def _token(credentials: str | None) -> str:
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
 
+    credentials = credentials or (
+        DEFAULT_CREDENTIALS if os.path.exists(DEFAULT_CREDENTIALS) else None
+    )
     if credentials:
         creds = service_account.Credentials.from_service_account_file(
             credentials, scopes=[SCOPE]
