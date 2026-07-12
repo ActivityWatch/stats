@@ -34,8 +34,8 @@ service-account key) and as a CSV collector for the `data` folder:
 
 ```sh
 uv run vitals.py summary                              # latest crash + ANR rate
-uv run vitals.py crash-rate --days 60                 # timeline
-uv run vitals.py crash-rate --csv >> data/android-crash-rate.csv
+uv run vitals.py crash-rate --days 60                 # timeline to stdout
+uv run vitals.py crash-rate --update data/android-crash-rate.csv  # upsert daily series (collector)
 uv run vitals.py crash-rate --dry-run                 # inspect the API request, no auth
 ```
 

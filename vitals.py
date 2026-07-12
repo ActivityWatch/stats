@@ -157,9 +157,10 @@ _common = [
                  help="Path to service-account JSON (or set GOOGLE_APPLICATION_CREDENTIALS)."),
     click.option("--days", default=30, show_default=True, help="Days of history to fetch."),
     click.option("--metric", default=None, help="Override the metric name."),
-    click.option("--csv", "as_csv", is_flag=True, help="Emit 'date,value' rows for a data file."),
+    click.option("--csv", "as_csv", is_flag=True,
+                 help="Print 'date,value' rows to stdout (one-shot; use --update to collect)."),
     click.option("--update", "update_path", default=None,
-                 help="Upsert the series into this CSV by date (for CI collection)."),
+                 help="Upsert the series into this CSV by date (append-only collector, no dupes)."),
     click.option("--dry-run", is_flag=True, help="Print the API request instead of sending it."),
 ]
 
