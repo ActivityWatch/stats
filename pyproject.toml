@@ -9,6 +9,7 @@ dependencies = [
     "pandas",
     "matplotlib",
     "click",
+    "google-auth>=2.50.0",
 ]
 
 # This project is a set of scripts, not an installable package. package-mode is
