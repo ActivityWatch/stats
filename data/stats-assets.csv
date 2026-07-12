@@ -472,3 +472,10 @@ timestamp,tag,asset,platform,downloads
 2026-07-12T14:37:03.648319+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,10964
 2026-07-12T14:37:03.648319+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,271373
 2026-07-12T14:37:03.648319+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,26418
+2026-07-12T15:11:19.898808+00:00,v0.12.3b18,activitywatch-v0.12.3b18-linux-x86_64.zip,linux,1690
+2026-07-12T15:11:19.898808+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,31642
+2026-07-12T15:11:19.898808+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,89650
+2026-07-12T15:11:19.898808+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,121945
+2026-07-12T15:11:19.898808+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,271398
+2026-07-12T15:11:19.898808+00:00,v0.14.0b1,activitywatch-tauri-v0.14.0b1-macos-arm64.dmg,macos,222
+2026-07-12T15:11:19.898808+00:00,v0.9.2,activitywatch-v0.9.2-macos-x86_64.dmg,macos,4593
