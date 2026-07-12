@@ -48,11 +48,7 @@ CANON = "data/android/installed.csv"
 # Consistent key location shared by local runs, agents, and CI.
 DEFAULT_CREDENTIALS = os.path.expanduser("~/.config/activitywatch/play-sa.json")
 DEFAULT_METRIC_COLUMN = "Active Device Installs"
-INSTALLED_HEADER = [
-    "Date",
-    "Installed audience (All users, Unique users, Per interval, Daily): All app versions",
-    "Notes",
-]
+INSTALLED_HEADER = ["Date", "Active Device Installs", "Notes"]
 
 
 def _token(credentials: str | None) -> str:
@@ -114,7 +110,9 @@ def parse_report(raw: bytes, metric_column: str) -> dict[str, str]:
     for row in csv.DictReader(io.StringIO(text)):
         date = (row.get("Date") or "").strip()
         value = (row.get(metric_column) or "").strip().replace(",", "")
-        if date and value:
+        # Skip "0": Play leaves not-yet-finalized recent days as 0, which would
+        # otherwise be a spurious dip in the install base.
+        if date and value and value != "0":
             out[date] = value
     return out
 

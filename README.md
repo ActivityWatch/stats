@@ -17,12 +17,13 @@ These data are updated automatically in CI:
  - `stats.csv` - Downloads & GitHub stars
  - `releases.csv` - Release dates of past releases
  - `stats-assets.csv` - Per-asset download counts (source for per-platform / per-version breakdowns)
+ - `android/installed.csv` - Android install base (Active Device Installs, Play Console bulk reports)
+ - `android-crash-rate.csv` / `android-anr-rate.csv` - Android vitals (Play Developer Reporting API)
 
 The following is manually updated:
 
  - `chrome-weekly-users.csv` - Chrome extension weekly active users
  - `firefox-daily-users.csv` - Firefox extension daily active users
- - `android/installed.csv` - Android installed devices (Play Console export)
  - `notes.csv` - Manual entries of major/interesting events
 
 
