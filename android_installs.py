@@ -110,10 +110,14 @@ def parse_report(raw: bytes, metric_column: str) -> dict[str, str]:
     for row in csv.DictReader(io.StringIO(text)):
         date = (row.get("Date") or "").strip()
         value = (row.get(metric_column) or "").strip().replace(",", "")
-        # Skip "0": Play leaves not-yet-finalized recent days as 0, which would
-        # otherwise be a spurious dip in the install base.
-        if date and value and value != "0":
+        if date and value:
             out[date] = value
+    # Drop only the trailing-zero suffix: Play leaves not-yet-finalized recent
+    # days as "0", which would otherwise appear as spurious dips. Internal zeros
+    # (rare but valid — e.g. a reporting gap mid-series) are kept as-is.
+    dates = sorted(out)
+    while dates and out[dates[-1]] == "0":
+        del out[dates.pop()]
     return out
 
 
