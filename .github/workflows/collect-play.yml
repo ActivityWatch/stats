@@ -31,17 +31,17 @@ jobs:
         printf '%s' "$PLAY_SA_JSON" > "$GOOGLE_APPLICATION_CREDENTIALS"
         uv run vitals.py crash-rate --days 30 --update data/android-crash-rate.csv
         uv run vitals.py anr-rate   --days 30 --update data/android-anr-rate.csv
-        # installs/installed.csv is intentionally disabled pending the metric
-        # decision (Installed audience vs Active Device Installs) — see #17.
-        # The SA can now read the bucket, so re-enable once decided:
-        #   uv run android_installs.py --bucket "$PLAY_BUCKET" update
+        # installed.csv = Active Device Installs from the bulk reports (#17).
+        if [ -n "$PLAY_BUCKET" ]; then
+          uv run android_installs.py --bucket "$PLAY_BUCKET" update
+        fi
         rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
     - name: Commit
       if: env.HAS_SA == 'true'
       run: |
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
-        git add data/android-crash-rate.csv data/android-anr-rate.csv
+        git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"
     - name: Push changes
       if: env.HAS_SA == 'true'
