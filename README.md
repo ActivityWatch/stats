@@ -43,6 +43,19 @@ Needs a Google Cloud service account granted "view app quality / Android
 vitals" access in the Play Console; point at the key with `--credentials` or
 `GOOGLE_APPLICATION_CREDENTIALS`. See the module docstring for setup.
 
+`android_installs.py` automates `android/installed.csv` (the install base
+currently exported by hand) from the Play Console bulk "installs" reports in
+Cloud Storage:
+
+```sh
+uv run android_installs.py --bucket pubsite_prod_rev_XXXX list    # what's available
+uv run android_installs.py --bucket pubsite_prod_rev_XXXX update  # write installed.csv
+```
+
+Needs a service account with the Play Console "Download bulk reports"
+permission; get the bucket from Play Console -> Download reports -> Statistics
+("Copy Cloud Storage URI").
+
 
 ### TODO
 
