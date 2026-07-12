@@ -19,6 +19,7 @@ These data are updated automatically in CI:
  - `stats-assets.csv` - Per-asset download counts (source for per-platform / per-version breakdowns)
  - `android/installed.csv` - Android install base (Active Device Installs, Play Console bulk reports)
  - `android-crash-rate.csv` / `android-anr-rate.csv` - Android vitals (Play Developer Reporting API)
+ - `android-ratings.csv` - Android Play Store rating over time (Total Average Rating, bulk reports)
 
 The following is manually updated:
 

@@ -31,9 +31,11 @@ jobs:
         printf '%s' "$PLAY_SA_JSON" > "$GOOGLE_APPLICATION_CREDENTIALS"
         uv run vitals.py crash-rate --days 30 --update data/android-crash-rate.csv
         uv run vitals.py anr-rate   --days 30 --update data/android-anr-rate.csv
-        # installed.csv = Active Device Installs from the bulk reports (#17).
+        # installed.csv = Active Device Installs; android-ratings.csv = store
+        # rating over time — both from the bulk reports (#17).
         if [ -n "$PLAY_BUCKET" ]; then
           uv run android_installs.py --bucket "$PLAY_BUCKET" update
+          uv run android_ratings.py --bucket "$PLAY_BUCKET"
         fi
         rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
     - name: Commit
@@ -41,7 +43,7 @@ jobs:
       run: |
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
-        git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv
+        git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv data/android-ratings.csv
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"
     - name: Push changes
       if: env.HAS_SA == 'true'
