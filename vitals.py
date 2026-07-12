@@ -34,6 +34,7 @@ shown in the Play Console headline).
 """
 from __future__ import annotations
 
+import csv
 import os
 from datetime import date, timedelta
 
@@ -157,8 +158,32 @@ _common = [
     click.option("--days", default=30, show_default=True, help="Days of history to fetch."),
     click.option("--metric", default=None, help="Override the metric name."),
     click.option("--csv", "as_csv", is_flag=True, help="Emit 'date,value' rows for a data file."),
+    click.option("--update", "update_path", default=None,
+                 help="Upsert the series into this CSV by date (for CI collection)."),
     click.option("--dry-run", is_flag=True, help="Print the API request instead of sending it."),
 ]
+
+
+def _upsert_csv(path: str, series: list, value_header: str) -> tuple[int, str]:
+    """Merge (date, value) series into a two-column CSV, keyed by date."""
+    rows: dict[str, str] = {}
+    if os.path.exists(path):
+        with open(path, newline="") as f:
+            reader = csv.reader(f)
+            next(reader, None)  # header
+            for r in reader:
+                if r:
+                    rows[r[0]] = r[1]
+    for iso, val in series:
+        if val is not None:
+            rows[iso] = repr(val) if isinstance(val, float) else str(val)
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f, lineterminator="\n")
+        w.writerow(["date", value_header])
+        for d in sorted(rows):
+            w.writerow([d, rows[d]])
+    dates = sorted(rows)
+    return len(dates), (dates[-1] if dates else "")
 
 
 def _with_common(f):
@@ -167,7 +192,8 @@ def _with_common(f):
     return f
 
 
-def _emit(metric_set, metric, label, package, days, credentials, as_csv, dry_run):
+def _emit(metric_set, metric, label, package, days, credentials, as_csv, dry_run,
+          update_path=None):
     if dry_run:
         import json
         today = date.today()
@@ -179,6 +205,10 @@ def _emit(metric_set, metric, label, package, days, credentials, as_csv, dry_run
         click.echo(json.dumps(body, indent=2))
         return
     series = fetch_metric(package, metric_set, metric, days, credentials)
+    if update_path:
+        n, last = _upsert_csv(update_path, series, metric)
+        click.echo(f"{update_path}: {n} rows (latest {last})")
+        return
     if as_csv:
         for iso, val in series:
             if val is not None:
@@ -202,18 +232,20 @@ def cli():
 
 @cli.command("crash-rate")
 @_with_common
-def crash_rate(package, credentials, days, metric, as_csv, dry_run):
+def crash_rate(package, credentials, days, metric, as_csv, update_path, dry_run):
     """User-perceived crash rate over time."""
     ms, default_metric, label = METRIC_SETS["crash-rate"]
-    _emit(ms, metric or default_metric, label, package, days, credentials, as_csv, dry_run)
+    _emit(ms, metric or default_metric, label, package, days, credentials, as_csv, dry_run,
+          update_path)
 
 
 @cli.command("anr-rate")
 @_with_common
-def anr_rate(package, credentials, days, metric, as_csv, dry_run):
+def anr_rate(package, credentials, days, metric, as_csv, update_path, dry_run):
     """User-perceived ANR rate over time."""
     ms, default_metric, label = METRIC_SETS["anr-rate"]
-    _emit(ms, metric or default_metric, label, package, days, credentials, as_csv, dry_run)
+    _emit(ms, metric or default_metric, label, package, days, credentials, as_csv, dry_run,
+          update_path)
 
 
 @cli.command("summary")
