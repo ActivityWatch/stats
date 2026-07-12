@@ -440,3 +440,17 @@ timestamp,tag,asset,platform,downloads
 2026-07-12T02:32:13.602688+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,271130
 2026-07-12T02:32:13.602688+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,26400
 2026-07-12T02:32:13.602688+00:00,v0.14.0b1,activitywatch-v0.14.0b1-macos-arm64.dmg,macos,979
+2026-07-12T08:12:30.536920+00:00,v0.10.0,activitywatch-v0.10.0-macos-x86_64.dmg,macos,5932
+2026-07-12T08:12:30.536920+00:00,v0.11.0,activitywatch-v0.11.0-macos-x86_64.dmg,macos,9783
+2026-07-12T08:12:30.536920+00:00,v0.12.3b18,activitywatch-v0.12.3b18-linux-x86_64.zip,linux,1678
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,31618
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,2661
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,89604
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,121869
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,10961
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,271215
+2026-07-12T08:12:30.536920+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,26409
+2026-07-12T08:12:30.536920+00:00,v0.14.0b1,activitywatch-tauri-v0.14.0b1-linux-x86_64.zip,linux,33
+2026-07-12T08:12:30.536920+00:00,v0.14.0b1,activitywatch-v0.14.0b1-macos-arm64.dmg,macos,980
+2026-07-12T08:12:30.536920+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64-setup.exe,windows,2147
+2026-07-12T08:12:30.536920+00:00,v0.8.0b7,activitywatch-v0.8.0b7-macos-x86_64.zip,macos,1145
