@@ -497,3 +497,5 @@ timestamp,tag,asset,platform,downloads
 2026-07-12T17:26:32.550039+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64-setup.exe,windows,2160
 2026-07-12T17:29:54.124613+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,89668
 2026-07-12T17:29:54.124613+00:00,v0.14.0b1,activitywatch-v0.14.0b1-linux-x86_64.zip,linux,739
+2026-07-12T17:36:51.809335+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,121977
+2026-07-12T17:36:51.809335+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,271460
