@@ -3,7 +3,7 @@ name = "aw-stats"
 version = "0.1.0"
 description = "Scripts for collecting and analyzing ActivityWatch usage stats"
 authors = [{ name = "Erik Bjäreholt", email = "erik@bjareho.lt" }]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "requests",
     "pandas",
