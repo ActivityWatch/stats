@@ -36,6 +36,7 @@ service-account key) and as a CSV collector for the `data` folder:
 uv run vitals.py summary                              # latest crash + ANR rate
 uv run vitals.py crash-rate --days 60                 # timeline to stdout
 uv run vitals.py crash-rate --update data/android-crash-rate.csv  # upsert daily series (collector)
+uv run vitals.py errors --limit 10 --stacktraces      # top crash clusters + sample stacktraces
 uv run vitals.py crash-rate --dry-run                 # inspect the API request, no auth
 ```
 

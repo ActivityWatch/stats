@@ -249,6 +249,53 @@ def anr_rate(package, credentials, days, metric, as_csv, update_path, dry_run):
           update_path)
 
 
+def fetch_error_issues(package, issue_type, limit, credentials):
+    """Top error clusters (crash/ANR) with cause, location, and report count."""
+    token = _access_token(credentials)
+    base = f"{BASE}/apps/{package}"
+    params = {"pageSize": limit}
+    if issue_type and issue_type != "all":
+        params["filter"] = f"errorIssueType = {issue_type.upper()}"
+    r = requests.get(f"{base}/errorIssues:search",
+                     headers={"Authorization": f"Bearer {token}"}, params=params, timeout=30)
+    r.raise_for_status()
+    return r.json().get("errorIssues", []), token
+
+
+def fetch_sample_stacktrace(package, issue_id, token):
+    base = f"{BASE}/apps/{package}"
+    r = requests.get(f"{base}/errorReports:search",
+                     headers={"Authorization": f"Bearer {token}"},
+                     params={"pageSize": 1, "filter": f"errorIssueId = {issue_id}"}, timeout=30)
+    r.raise_for_status()
+    reports = r.json().get("errorReports", [])
+    return reports[0].get("reportText", "") if reports else ""
+
+
+@cli.command("errors")
+@click.option("--package", default=DEFAULT_PACKAGE, show_default=True)
+@click.option("--credentials", envvar="GOOGLE_APPLICATION_CREDENTIALS")
+@click.option("--type", "issue_type", default="crash",
+              type=click.Choice(["crash", "anr", "all"]), show_default=True)
+@click.option("--limit", default=10, show_default=True)
+@click.option("--stacktraces", is_flag=True, help="Include a sample stacktrace per cluster.")
+def errors(package, credentials, issue_type, limit, stacktraces):
+    """Top crash/ANR clusters (cause, location, report count) from Android vitals."""
+    issues, token = fetch_error_issues(package, issue_type, limit, credentials)
+    if not issues:
+        click.echo("No error issues found.")
+        return
+    for i, iss in enumerate(issues, 1):
+        click.echo(f"{i}. [{iss.get('type')}] {iss.get('errorReportCount', '?')} reports  "
+                   f"{iss.get('location', '')}")
+        click.echo(f"   {iss.get('cause', '')}")
+        if stacktraces:
+            st = fetch_sample_stacktrace(package, iss["name"].split("/")[-1], token)
+            for line in st.splitlines()[:8]:
+                click.echo(f"     {line}")
+        click.echo()
+
+
 @cli.command("summary")
 @click.option("--package", default=DEFAULT_PACKAGE, show_default=True)
 @click.option("--credentials", envvar="GOOGLE_APPLICATION_CREDENTIALS")
