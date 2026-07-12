@@ -120,13 +120,13 @@ def test_load_all():
 @click.option("--resample", default="1D")
 @click.option("--title")
 def main(
-    column: str = None,
-    save: str = None,
-    since: datetime = None,
+    column: str | None = None,
+    save: str | None = None,
+    since: datetime | None = None,
     per_day: bool = False,
     per_week: bool = False,
     resample: str = "1D",
-    title: str = None,
+    title: str | None = None,
 ):
     n_plots = 2 if per_day or per_week else 1
 
