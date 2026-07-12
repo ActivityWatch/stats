@@ -74,7 +74,7 @@ def _access_token(credentials: str | None) -> str:
 
 
 def _datetime(d: date, tz: dict | None) -> dict:
-    out = {"year": d.year, "month": d.month, "day": d.day}
+    out: dict = {"year": d.year, "month": d.month, "day": d.day}
     if tz:
         out["timeZone"] = tz
     return out

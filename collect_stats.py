@@ -36,7 +36,7 @@ def github_get_all(path: str) -> list:
     releases a single request would silently truncate the list.
     """
     items: list = []
-    url = f"https://api.github.com{path}"
+    url: str | None = f"https://api.github.com{path}"
     while url:
         response = requests.get(url, headers=_github_headers(), timeout=30)
         response.raise_for_status()

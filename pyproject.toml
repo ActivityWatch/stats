@@ -18,3 +18,19 @@ dependencies = [
 # trying to install a non-existent "aw-stats" package. uv reads [project] above.
 [tool.poetry]
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=8.4.2",
+    "ruff>=0.15.21",
+]
+
+[tool.mypy]
+# Third-party libs here (pandas, matplotlib, google-auth, …) ship partial or no
+# stubs; this repo is scripts, not a typed library — keep the check lightweight.
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+# The smoke tests (test_load*) live inside analyze_stats.py, not a test_*.py file.
+python_files = ["test_*.py", "analyze_stats.py"]
