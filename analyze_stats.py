@@ -34,6 +34,21 @@ def _load_android():
     return df
 
 
+def _load_android_crash_rate():
+    df = pd.read_csv("data/android-crash-rate.csv", index_col="date", parse_dates=True)
+    df = df.tz_localize(tz=timezone.utc)
+    df = df * 100  # fraction -> percent
+    df.columns = ["Android crash rate (%)"]
+    return df
+
+
+def _load_android_rating():
+    df = pd.read_csv("data/android-ratings.csv", index_col="date", parse_dates=True)
+    df = df.tz_localize(tz=timezone.utc)
+    df.columns = ["Android Play Store rating"]
+    return df
+
+
 def _load_assets():
     """Raw per-asset download counts over time (long format).
 
@@ -94,6 +109,8 @@ def _load_data():
     df = df.merge(_load_chrome(), how="outer", left_index=True, right_index=True)
     df = df.merge(_load_firefox(), how="outer", left_index=True, right_index=True)
     df = df.merge(_load_android(), how="outer", left_index=True, right_index=True)
+    df = df.merge(_load_android_crash_rate(), how="outer", left_index=True, right_index=True)
+    df = df.merge(_load_android_rating(), how="outer", left_index=True, right_index=True)
     return df
 
 
@@ -102,6 +119,8 @@ def test_load():
     _load_chrome()
     _load_firefox()
     _load_android()
+    _load_android_crash_rate()
+    _load_android_rating()
     _load_assets()
     platform_totals()
     version_platform_totals()
