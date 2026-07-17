@@ -807,3 +807,17 @@ timestamp,tag,asset,platform,downloads
 2026-07-17T08:05:24.890232+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64.zip,windows,70
 2026-07-17T08:05:24.890232+00:00,v0.7.1,activitywatch-v0.7.1-windows-x86_64.zip,windows,4464
 2026-07-17T08:05:24.890232+00:00,v0.8.0b7,activitywatch-v0.8.0b7-macos-x86_64.zip,macos,1155
+2026-07-17T13:22:00.033026+00:00,v0.13.1,activitywatch-v0.13.1-macos-x86_64.dmg,macos,7900
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,32057
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,3115
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,90499
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,123478
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,11055
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,274886
+2026-07-17T13:22:00.033026+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,26736
+2026-07-17T13:22:00.033026+00:00,v0.14.0b1,activitywatch-tauri-v0.14.0b1-macos-arm64.dmg,macos,239
+2026-07-17T13:22:00.033026+00:00,v0.14.0b1,activitywatch-v0.14.0b1-linux-x86_64.zip,linux,801
+2026-07-17T13:22:00.033026+00:00,v0.14.0b1,activitywatch-v0.14.0b1-macos-arm64.dmg,macos,1091
+2026-07-17T13:22:00.033026+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64-setup.exe,windows,2363
+2026-07-17T13:22:00.033026+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64.zip,windows,71
+2026-07-17T13:22:00.033026+00:00,v0.8.0b7,activitywatch-v0.8.0b7-macos-x86_64.zip,macos,1157
