@@ -1056,3 +1056,14 @@ timestamp,tag,asset,platform,downloads
 2026-07-21T08:23:25.177631+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64-setup.exe,windows,2475
 2026-07-21T08:23:25.177631+00:00,v0.7.0b4,activitywatch-v0.7.0b4-windows-x86_64.zip,windows,143
 2026-07-21T08:23:25.177631+00:00,v0.7.1,activitywatch-v0.7.1-windows-x86_64.zip,windows,4466
+2026-07-21T13:42:55.601432+00:00,v0.12.2,activitywatch-v0.12.2-linux-x86_64.zip,linux,31619
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,32401
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,3485
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,91084
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,124667
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,11132
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,277077
+2026-07-21T13:42:55.601432+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,26948
+2026-07-21T13:42:55.601432+00:00,v0.14.0b1,activitywatch-v0.14.0b1-linux-x86_64.deb,linux,80
+2026-07-21T13:42:55.601432+00:00,v0.14.0b1,activitywatch-v0.14.0b1-macos-arm64.dmg,macos,1174
+2026-07-21T13:42:55.601432+00:00,v0.14.0b1,activitywatch-v0.14.0b1-windows-x86_64-setup.exe,windows,2496
