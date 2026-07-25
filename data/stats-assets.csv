@@ -1363,3 +1363,13 @@ timestamp,tag,asset,platform,downloads
 2026-07-25T02:26:19.904443+00:00,v0.14.0b2,activitywatch-v0.14.0b2-macos-x86_64.dmg,macos,22
 2026-07-25T02:26:19.904443+00:00,v0.14.0b2,activitywatch-v0.14.0b2-windows-x86_64-setup.exe,windows,141
 2026-07-25T02:26:19.904443+00:00,v0.9.1,activitywatch-v0.9.1-windows-x86_64-setup.exe,windows,221
+2026-07-25T08:02:03.966796+00:00,v0.12.1,activitywatch-v0.12.1-windows-x86_64-setup.exe,windows,23150
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,32717
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,3814
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,91681
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,125822
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,11224
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,279452
+2026-07-25T08:02:03.966796+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,27174
+2026-07-25T08:02:03.966796+00:00,v0.14.0b2,activitywatch-v0.14.0b2-macos-arm64.dmg,macos,59
+2026-07-25T08:02:03.966796+00:00,v0.14.0b2,activitywatch-v0.14.0b2-windows-x86_64-setup.exe,windows,145
