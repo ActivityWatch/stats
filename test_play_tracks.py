@@ -131,7 +131,27 @@ def test_upsert_overwrites_a_changed_same_day_snapshot(tmp_path):
     with open(path, newline="") as f:
         got = {(r["track"], r["version_codes"]): r for r in csv.DictReader(f)}
     assert got[("production", "31")]["user_fraction"] == "0.5"
-    assert len(got) == 3  # the other two rows survive
+    # Only the one row the second run returned survives for today; prior-day
+    # rows from other dates are not affected (tested separately).
+    assert len(got) == 1
+
+
+def test_upsert_removes_stale_same_day_release(tmp_path):
+    """A release revoked between two same-day runs must not remain in the CSV."""
+    path = str(tmp_path / "tracks.csv")
+    # Morning: production carries two releases (staged rollout in progress)
+    play_tracks.upsert_csv(path, play_tracks.parse_tracks(TRACKS_MID_ROLLOUT, "2026-08-26"))
+    # Evening: the in-progress release was paused and removed from the track
+    evening = [{"track": "production", "releases": [
+        {"name": "0.12.1", "versionCodes": ["27"], "status": "completed"}]},
+               {"track": "internal", "releases": [
+        {"name": "0.14.0b4", "versionCodes": ["33"], "status": "completed"}]}]
+    play_tracks.upsert_csv(path, play_tracks.parse_tracks(evening, "2026-08-26"))
+    with open(path, newline="") as f:
+        got = list(csv.DictReader(f))
+    version_codes = {r["version_codes"] for r in got}
+    assert "31" not in version_codes, "revoked release must not survive a rerun"
+    assert len(got) == 2
 
 
 # --- rollout_summary -------------------------------------------------------

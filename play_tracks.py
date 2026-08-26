@@ -166,14 +166,19 @@ def parse_tracks(tracks: list[dict], today: str) -> list[dict]:
 def upsert_csv(path: str, rows: list[dict]) -> int:
     """Merge rows into the CSV keyed by (date, track, version_codes).
 
-    Re-running on the same day overwrites that day's snapshot rather than
-    appending a duplicate, so the daily collector is idempotent.
+    Re-running on the same day replaces that date's snapshot entirely rather
+    than merging key-by-key, so revoked or superseded releases do not persist.
+    Previous dates are preserved unchanged.
     """
     existing: dict[tuple[str, str, str], dict] = {}
     if os.path.exists(path):
         with open(path, newline="") as f:
             for r in csv.DictReader(f):
                 existing[(r["date"], r["track"], r["version_codes"])] = r
+    # Drop all rows for dates covered by the new snapshot before inserting,
+    # so a rerun that no longer reports a release doesn't retain the stale row.
+    snapshot_dates = {row["date"] for row in rows}
+    existing = {key: row for key, row in existing.items() if key[0] not in snapshot_dates}
     for row in rows:
         existing[(row["date"], row["track"], row["version_codes"])] = row
     with open(path, "w", newline="") as f:
