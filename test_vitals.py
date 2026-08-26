@@ -135,7 +135,8 @@ def test_by_version_same_code_different_label_merges():
 
 def test_by_version_csv_escapes_comma_in_label(monkeypatch, tmp_path):
     """P2: a comma in a version label must not corrupt the CSV output."""
-    import io
+    import csv
+    import io as _io
     from click.testing import CliRunner
 
     # Patch fetch_rows to return a row whose label contains a comma
@@ -151,7 +152,6 @@ def test_by_version_csv_escapes_comma_in_label(monkeypatch, tmp_path):
         ["by-version", "--as-csv", "--package", "net.activitywatch.android"],
     )
     assert result.exit_code == 0, result.output
-    import csv, io as _io
     rows = list(csv.reader(_io.StringIO(result.output)))
     # Header + one data row; the label's commas must not create extra columns
     assert rows[0] == ["version", "days", "mean"]
