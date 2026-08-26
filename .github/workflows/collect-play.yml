@@ -37,6 +37,12 @@ jobs:
           uv run android_installs.py --bucket "$PLAY_BUCKET" update
           uv run android_ratings.py --bucket "$PLAY_BUCKET"
         fi
+        # Track/rollout state (Publisher API). Needs a release permission the
+        # vitals-only SA may not have, so a denial (exit 3) must not fail the
+        # whole collection -- but it must stay visible rather than silently
+        # skipping, which is how the vitals feed stalled unnoticed for a week.
+        uv run play_tracks.py --update data/android-tracks.csv \
+          || echo "::warning::play_tracks.py failed (exit $?) - track state not updated"
         rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
     - name: Commit
       if: env.HAS_SA == 'true'
@@ -44,6 +50,8 @@ jobs:
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
         git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv data/android-ratings.csv
+        # android-tracks.csv may not exist yet if play_tracks.py lacked permission
+        [ -f data/android-tracks.csv ] && git add data/android-tracks.csv || true
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"
     - name: Push changes
       if: env.HAS_SA == 'true'

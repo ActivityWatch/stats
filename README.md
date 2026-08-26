@@ -15,7 +15,8 @@ All data is stored in the `data` folder.
 These data are updated automatically in CI:
 
  - `stats.csv` - Downloads & GitHub stars
- - `releases.csv` - Release dates of past releases
+ - `releases.csv` - Release dates of past releases (GitHub *tags* — when a version was cut, not when it reached users)
+ - `android-tracks.csv` - Play release-track state: which versionCode each track serves, and staged-rollout progress
  - `stats-assets.csv` - Per-asset download counts (source for per-platform / per-version breakdowns)
  - `android/installed.csv` - Android install base (Active Device Installs, Play Console bulk reports)
  - `android-crash-rate.csv` / `android-anr-rate.csv` - Android vitals (Play Developer Reporting API)
@@ -45,6 +46,28 @@ uv run vitals.py crash-rate --dry-run                 # inspect the API request,
 Needs a Google Cloud service account granted "view app quality / Android
 vitals" access in the Play Console; point at the key with `--credentials` or
 `GOOGLE_APPLICATION_CREDENTIALS`. See the module docstring for setup.
+
+## Play release tracks
+
+`releases.csv` records when a version was *tagged*, which is not when it
+reached users — v0.14.0b2 was tagged 2026-07-22 and promoted to production a
+month later. `play_tracks.py` records the other half: which release each Play
+track currently serves, and how far a staged rollout has progressed.
+
+```shell
+uv run play_tracks.py                                  # human summary per track
+uv run play_tracks.py --update data/android-tracks.csv # daily snapshot (idempotent)
+uv run play_tracks.py --csv                            # rows to stdout
+```
+
+This uses the Android Publisher API (not the Reporting API `vitals.py` uses),
+so the service account needs an app permission that allows opening an edit —
+at least "Release to testing tracks". "View app quality information" alone is
+not enough; the tool exits 3 with that advice rather than a stack trace.
+
+Pair it with `vitals.py by-version` to attribute a crash rate to a release:
+the app-wide rate is dominated by whatever the install base still runs, so a
+partial rollout of a genuinely fixed build barely moves it.
 
 `android_installs.py` automates `android/installed.csv` (the install base
 currently exported by hand) from the Play Console bulk "installs" reports in
