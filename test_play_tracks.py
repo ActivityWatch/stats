@@ -199,3 +199,17 @@ def test_fetch_deletes_the_edit_even_when_the_read_fails(monkeypatch):
     with pytest.raises(requests.HTTPError):
         play_tracks.fetch_tracks("pkg", None)
     assert calls == ["delete"]
+
+
+def test_fetch_returns_data_even_when_delete_raises(monkeypatch):
+    """A transport error during cleanup must not discard a successful read."""
+    monkeypatch.setattr(play_tracks, "_access_token", lambda c: "tok")
+    monkeypatch.setattr(requests, "post", lambda *a, **k: FakeResponse(200, {"id": "e1"}))
+    monkeypatch.setattr(requests, "get",
+                        lambda *a, **k: FakeResponse(200, {"tracks": TRACKS_MID_ROLLOUT}))
+    monkeypatch.setattr(requests, "delete",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            requests.exceptions.ConnectionError("timeout")))
+
+    tracks = play_tracks.fetch_tracks("pkg", None)
+    assert tracks == TRACKS_MID_ROLLOUT

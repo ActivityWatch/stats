@@ -122,9 +122,12 @@ def fetch_tracks(package: str, credentials: str | None) -> list[dict]:
     finally:
         # Best-effort cleanup: an abandoned edit expires on its own, and
         # failing to delete it must not lose the data we just read.
-        requests.delete(
-            f"{BASE}/applications/{package}/edits/{edit_id}", headers=headers, timeout=30
-        )
+        try:
+            requests.delete(
+                f"{BASE}/applications/{package}/edits/{edit_id}", headers=headers, timeout=30
+            )
+        except Exception:
+            pass
 
 
 def parse_tracks(tracks: list[dict], today: str) -> list[dict]:

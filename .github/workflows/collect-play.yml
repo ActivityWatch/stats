@@ -49,7 +49,9 @@ jobs:
       run: |
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
-        git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv data/android-ratings.csv data/android-tracks.csv
+        git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv data/android-ratings.csv
+        # android-tracks.csv may not exist yet if play_tracks.py lacked permission
+        [ -f data/android-tracks.csv ] && git add data/android-tracks.csv || true
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"
     - name: Push changes
       if: env.HAS_SA == 'true'
