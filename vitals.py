@@ -125,12 +125,32 @@ def _daily_freshness(base: str, metric_set: str, token: str) -> dict | None:
     return None
 
 
+def _dimension_raw(row: dict, dimension: str) -> str | None:
+    """The row's raw (unlabelled) value for `dimension`.
+
+    Use this as a stable grouping key — `_dimension_value` may produce
+    different strings for the same versionCode when Play omits or changes the
+    valueLabel between rows, splitting one release across multiple buckets.
+    """
+    for d in row.get("dimensions", []):
+        if d.get("dimension") != dimension:
+            continue
+        for key in ("int64Value", "stringValue", "value"):
+            if d.get(key) is not None:
+                return str(d[key])
+        label = d.get("valueLabel")
+        return str(label) if label else None
+    return None
+
+
 def _dimension_value(row: dict, dimension: str) -> str | None:
     """The row's value for `dimension`, as a display string.
 
     The API returns the value under one of several typed keys and may add a
     human `valueLabel` (e.g. a version *name* next to a versionCode), so we
     prefer the label when present and fall back to the raw value.
+
+    Do NOT use this as a grouping key — see `_dimension_raw` instead.
     """
     for d in row.get("dimensions", []):
         if d.get("dimension") != dimension:
@@ -398,34 +418,44 @@ def by_version(package, credentials, days, kind, metric, as_csv, dry_run):
     if warning:
         click.echo(warning, err=True)
 
-    # version -> observed daily values (None means "no data that day")
+    # Group by raw versionCode (stable key); track best label seen for display.
+    # Grouping by _dimension_value would split one release into multiple buckets
+    # if Play omits or changes valueLabel between rows for the same versionCode.
     per_version: dict[str, list[float]] = {}
+    version_labels: dict[str, str] = {}
     for row in rows:
-        version = _dimension_value(row, "versionCode")
-        if version is None:
+        version_code = _dimension_raw(row, "versionCode")
+        if version_code is None:
             continue
+        display = _dimension_value(row, "versionCode")
+        if display and display != version_code:
+            version_labels[version_code] = display
         for _, value in _parse_rows([row], metric):
             if value is not None:
-                per_version.setdefault(version, []).append(value)
+                per_version.setdefault(version_code, []).append(value)
 
     if not per_version:
         click.echo("No per-version data returned.")
         return
 
     # Newest versionCode last: sort numerically when we can, else lexically.
-    def _sort_key(v: str):
-        head = v.split(" ", 1)[0]
-        return (0, int(head)) if head.isdigit() else (1, 0)
+    def _sort_key(code: str) -> tuple:
+        return (0, int(code)) if code.isdigit() else (1, 0)
+
+    def _display(code: str) -> str:
+        return version_labels.get(code, code)
 
     summary_rows = [
-        (version, len(values), sum(values) / len(values))
-        for version, values in sorted(per_version.items(), key=lambda kv: _sort_key(kv[0]))
+        (_display(code), len(values), sum(values) / len(values))
+        for code, values in sorted(per_version.items(), key=lambda kv: _sort_key(kv[0]))
     ]
 
     if as_csv:
-        click.echo("version,days,mean")
+        import sys
+        w = csv.writer(sys.stdout, lineterminator="\n")
+        w.writerow(["version", "days", "mean"])
         for version, n, mean in summary_rows:
-            click.echo(f"{version},{n},{mean!r}")
+            w.writerow([version, n, repr(mean)])
         return
 
     click.echo(f"{label} ({metric}) by version for {package}, last {days} days")
