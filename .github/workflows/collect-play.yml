@@ -21,16 +21,21 @@ jobs:
     - name: Install dependencies
       if: env.HAS_SA == 'true'
       run: uv sync
-    - name: Collect vitals + install base
+    - name: Collect vitals, error reports + install base
       if: env.HAS_SA == 'true'
+      shell: bash
       env:
         PLAY_SA_JSON: ${{ secrets.PLAY_SA_JSON }}
         PLAY_BUCKET: ${{ secrets.PLAY_BUCKET }}
-        GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/play-sa.json
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/play-sa.json
       run: |
+        trap 'rm -f "$GOOGLE_APPLICATION_CREDENTIALS"' EXIT
         printf '%s' "$PLAY_SA_JSON" > "$GOOGLE_APPLICATION_CREDENTIALS"
         uv run vitals.py crash-rate --days 30 --update data/android-crash-rate.csv
         uv run vitals.py anr-rate   --days 30 --update data/android-anr-rate.csv
+        # Sanitized, ranked error snapshots; API failures fail this collection.
+        uv run vitals.py errors --type all --days 7 --limit 100 --stacktraces \
+          --update-dir data/android-errors
         # installed.csv = Active Device Installs; android-ratings.csv = store
         # rating over time — both from the bulk reports (#17).
         if [ -n "$PLAY_BUCKET" ]; then
@@ -43,13 +48,13 @@ jobs:
         # skipping, which is how the vitals feed stalled unnoticed for a week.
         uv run play_tracks.py --update data/android-tracks.csv \
           || echo "::warning::play_tracks.py failed (exit $?) - track state not updated"
-        rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
     - name: Commit
       if: env.HAS_SA == 'true'
       run: |
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
         git add data/android-crash-rate.csv data/android-anr-rate.csv data/android/installed.csv data/android-ratings.csv
+        git add data/android-errors/current.json data/android-errors/current.md data/android-errors/history/
         # android-tracks.csv may not exist yet if play_tracks.py lacked permission
         [ -f data/android-tracks.csv ] && git add data/android-tracks.csv || true
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"

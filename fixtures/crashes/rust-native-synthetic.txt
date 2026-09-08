@@ -1,0 +1,8 @@
+thread '[redacted]' panicked at /private/example.rs:42:5:
+[synthetic message containing private path /data/user/secret/database.sqlite]
+stack backtrace:
+   0: std::panicking::begin_panic::h0123456789abcdef
+             at /rustc/0123456789abcdef/library/std/src/panicking.rs:10:5
+   1: 0x0000000000001234 - aw_sync::sync::sync_run::hfedcba9876543210
+             at /private/checkout/aw-sync/src/sync.rs:123:4
+   2: aw_sync::jni::sync_both::h0123456789abcdef
