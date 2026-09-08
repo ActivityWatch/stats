@@ -123,6 +123,49 @@ def test_persistence_retains_changed_same_time_snapshots_and_dispositions(tmp_pa
     assert "-786" in (tmp_path / "current.md").read_text()
 
 
+def test_current_reports_roll_back_together_if_markdown_replace_fails(tmp_path, monkeypatch):
+    old = snapshot()
+    crash_reports.persist_snapshot(tmp_path, old)
+    previous_json = (tmp_path / "current.json").read_text()
+    previous_md = (tmp_path / "current.md").read_text()
+    newer = copy.deepcopy(old)
+    newer["clusters"][0]["report_count"] = 5
+    original = crash_reports._replace
+
+    def fail_markdown(source, destination):
+        if destination.name == "current.md":
+            raise OSError("simulated publish failure")
+        original(source, destination)
+
+    monkeypatch.setattr(crash_reports, "_replace", fail_markdown)
+    with pytest.raises(OSError, match="simulated publish failure"):
+        crash_reports.persist_snapshot(tmp_path, newer)
+    assert (tmp_path / "current.json").read_text() == previous_json
+    assert (tmp_path / "current.md").read_text() == previous_md
+    assert not [path for path in tmp_path.iterdir() if path.name.startswith(".")]
+    monkeypatch.setattr(crash_reports, "_replace", original)
+    newer["comparison"] = crash_reports.compare_snapshots(newer, old)
+    crash_reports.persist_snapshot(tmp_path, newer)
+    assert json.loads((tmp_path / "current.json").read_text()) == newer
+    assert "-786" in (tmp_path / "current.md").read_text()
+
+
+def test_partial_first_publish_does_not_leave_json_without_markdown(tmp_path, monkeypatch):
+    original = crash_reports._replace
+
+    def fail_markdown(source, destination):
+        if destination.name == "current.md":
+            raise OSError("simulated publish failure")
+        original(source, destination)
+
+    monkeypatch.setattr(crash_reports, "_replace", fail_markdown)
+    with pytest.raises(OSError, match="simulated publish failure"):
+        crash_reports.persist_snapshot(tmp_path, snapshot())
+    assert not (tmp_path / "current.json").exists()
+    assert not (tmp_path / "current.md").exists()
+    assert not [path for path in tmp_path.iterdir() if path.name.startswith(".")]
+
+
 def test_fetch_paginates_and_records_top_n_truncation(monkeypatch):
     monkeypatch.setattr(vitals, "_access_token", lambda _: "test-token")
     calls = []

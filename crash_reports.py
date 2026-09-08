@@ -153,8 +153,46 @@ def persist_snapshot(directory: Path, snapshot: dict) -> Path:
                     raise ValueError(f"Existing snapshot differs from its content hash: {archive}")
         finally:
             temporary_archive.unlink(missing_ok=True)
-    for name, text in (("current.json", payload), ("current.md", render_markdown(snapshot))):
-        temporary = directory / f".{name}.{digest}.tmp"
-        temporary.write_text(text, encoding="utf-8")
-        temporary.replace(directory / name)
+    _publish_current_reports(directory, digest, (
+        ("current.json", payload),
+        ("current.md", render_markdown(snapshot)),
+    ))
     return archive
+
+
+def _replace(source: Path, destination: Path) -> None:
+    source.replace(destination)
+
+
+def _publish_current_reports(directory: Path, digest: str,
+                             reports: tuple[tuple[str, str], ...]) -> None:
+    """Replace current.json and current.md together; roll back a partial publish."""
+    published: list[tuple[Path, Path | None]] = []
+    leftovers: list[Path] = []
+    try:
+        for name, text in reports:
+            destination = directory / name
+            temporary = directory / f".{name}.{digest}.tmp"
+            leftovers.append(temporary)
+            temporary.write_text(text, encoding="utf-8")
+            backup = None
+            if destination.exists():
+                backup = directory / f".{name}.{digest}.bak"
+                leftovers.append(backup)
+                backup.unlink(missing_ok=True)
+                try:
+                    os.link(destination, backup)
+                except OSError:
+                    backup.write_bytes(destination.read_bytes())
+            _replace(temporary, destination)
+            published.append((destination, backup))
+    except Exception:
+        for destination, backup in reversed(published):
+            if backup is not None:
+                _replace(backup, destination)
+            else:
+                destination.unlink(missing_ok=True)
+        raise
+    finally:
+        for path in leftovers:
+            path.unlink(missing_ok=True)
