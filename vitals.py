@@ -47,6 +47,10 @@ DEFAULT_PACKAGE = "net.activitywatch.android"
 # Consistent key location shared by local runs, agents, and CI.
 DEFAULT_CREDENTIALS = os.path.expanduser("~/.config/activitywatch/play-sa.json")
 
+# Days behind "today" past which the API's DAILY feed counts as stalled
+# rather than normally lagging.
+STALE_FRESHNESS_DAYS = 3
+
 # command -> (metric-set resource, default metric, human label)
 METRIC_SETS = {
     "crash-rate": ("crashRateMetricSet", "userPerceivedCrashRate", "User-perceived crash rate"),
@@ -80,12 +84,18 @@ def _datetime(d: date, tz: dict | None) -> dict:
     return out
 
 
-def _build_body(end_dt: dict, days: int, metric: str) -> dict:
-    """Build a query body for the DAILY window ending at `end_dt` (a DateTime)."""
+def _build_body(end_dt: dict, days: int, metric: str,
+                dimensions: tuple[str, ...] = ()) -> dict:
+    """Build a query body for the DAILY window ending at `end_dt` (a DateTime).
+
+    `dimensions` breaks the metric down instead of returning one app-wide
+    number per day — `versionCode` is the one that answers "is the release we
+    just shipped better?", which the aggregate cannot (see `by-version`).
+    """
     end = date(end_dt["year"], end_dt["month"], end_dt["day"])
     tz = end_dt.get("timeZone")
     start = end - timedelta(days=days)
-    return {
+    body: dict = {
         "timelineSpec": {
             "aggregationPeriod": "DAILY",
             "startTime": _datetime(start, tz),
@@ -93,6 +103,9 @@ def _build_body(end_dt: dict, days: int, metric: str) -> dict:
         },
         "metrics": [metric],
     }
+    if dimensions:
+        body["dimensions"] = list(dimensions)
+    return body
 
 
 def _daily_freshness(base: str, metric_set: str, token: str) -> dict | None:
@@ -112,6 +125,45 @@ def _daily_freshness(base: str, metric_set: str, token: str) -> dict | None:
     return None
 
 
+def _dimension_raw(row: dict, dimension: str) -> str | None:
+    """The row's raw (unlabelled) value for `dimension`.
+
+    Use this as a stable grouping key — `_dimension_value` may produce
+    different strings for the same versionCode when Play omits or changes the
+    valueLabel between rows, splitting one release across multiple buckets.
+    """
+    for d in row.get("dimensions", []):
+        if d.get("dimension") != dimension:
+            continue
+        for key in ("int64Value", "stringValue", "value"):
+            if d.get(key) is not None:
+                return str(d[key])
+        label = d.get("valueLabel")
+        return str(label) if label else None
+    return None
+
+
+def _dimension_value(row: dict, dimension: str) -> str | None:
+    """The row's value for `dimension`, as a display string.
+
+    The API returns the value under one of several typed keys and may add a
+    human `valueLabel` (e.g. a version *name* next to a versionCode), so we
+    prefer the label when present and fall back to the raw value.
+
+    Do NOT use this as a grouping key — see `_dimension_raw` instead.
+    """
+    for d in row.get("dimensions", []):
+        if d.get("dimension") != dimension:
+            continue
+        label = d.get("valueLabel")
+        for key in ("stringValue", "int64Value", "value"):
+            if d.get(key) is not None:
+                raw = str(d[key])
+                return f"{raw} ({label})" if label and label != raw else raw
+        return str(label) if label else None
+    return None
+
+
 def _parse_rows(rows: list, metric: str) -> list[tuple[str, float | None]]:
     series = []
     for row in rows:
@@ -127,13 +179,15 @@ def _parse_rows(rows: list, metric: str) -> list[tuple[str, float | None]]:
     return series
 
 
-def fetch_metric(package, metric_set, metric, days, credentials):
+def fetch_rows(package, metric_set, metric, days, credentials,
+               dimensions: tuple[str, ...] = ()):
+    """Raw rows plus the API's DAILY freshness date, for dimensioned queries."""
     token = _access_token(credentials)
     base = f"{BASE}/apps/{package}"
     end_dt = _daily_freshness(base, metric_set, token)
     if not end_dt:
         raise SystemExit(f"No DAILY freshness available for {metric_set}")
-    body = _build_body(end_dt, days, metric)
+    body = _build_body(end_dt, days, metric, dimensions)
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{base}/{metric_set}:query"
     rows, page_token = [], None
@@ -146,7 +200,34 @@ def fetch_metric(package, metric_set, metric, days, credentials):
         page_token = data.get("nextPageToken")
         if not page_token:
             break
-    return _parse_rows(rows, metric)
+    return rows, end_dt
+
+
+def _freshness_warning(end_dt: dict) -> str | None:
+    """Warn when the API's own latest DAILY date has fallen behind.
+
+    A stalled feed is otherwise invisible: the collector still exits 0 and
+    re-writes the same rows, so `git diff --quiet` skips the commit and the
+    daily job keeps reporting success while the series silently stops. Callers
+    print this so a stall shows up as output rather than as absence of it.
+    """
+    try:
+        latest = date(end_dt["year"], end_dt["month"], end_dt["day"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    lag = (date.today() - latest).days
+    # Play's DAILY vitals normally land within ~2-3 days; beyond that the feed
+    # is stalled, not merely lagging.
+    if lag > STALE_FRESHNESS_DAYS:
+        return (f"WARNING: latest available DAILY data is {latest} ({lag} days "
+                f"behind today) — the feed is stalled, not just lagging.")
+    return None
+
+
+def fetch_metric(package, metric_set, metric, days, credentials):
+    """The app-wide daily series, plus the API's latest available DAILY date."""
+    rows, end_dt = fetch_rows(package, metric_set, metric, days, credentials)
+    return _parse_rows(rows, metric), end_dt
 
 
 # --- CLI -------------------------------------------------------------------
@@ -205,7 +286,10 @@ def _emit(metric_set, metric, label, package, days, credentials, as_csv, dry_run
         click.echo(f"POST {BASE}/apps/{package}/{metric_set}:query")
         click.echo(json.dumps(body, indent=2))
         return
-    series = fetch_metric(package, metric_set, metric, days, credentials)
+    series, end_dt = fetch_metric(package, metric_set, metric, days, credentials)
+    warning = _freshness_warning(end_dt)
+    if warning:
+        click.echo(warning, err=True)
     if update_path:
         n, last = _upsert_csv(update_path, series, metric)
         click.echo(f"{update_path}: {n} rows (latest {last})")
@@ -294,6 +378,90 @@ def errors(package, credentials, issue_type, limit, stacktraces):
             for line in st.splitlines()[:8]:
                 click.echo(f"     {line}")
         click.echo()
+
+
+@cli.command("by-version")
+@click.option("--package", default=DEFAULT_PACKAGE, show_default=True)
+@click.option("--credentials", envvar="GOOGLE_APPLICATION_CREDENTIALS")
+@click.option("--days", default=14, show_default=True,
+              help="Days of history to compare over.")
+@click.option("--kind", type=click.Choice(["crash-rate", "anr-rate"]),
+              default="crash-rate", show_default=True)
+@click.option("--metric", default=None, help="Override the metric name.")
+@click.option("--as-csv", "as_csv", is_flag=True,
+              help="Print 'version,days,mean' rows instead of a table.")
+@click.option("--dry-run", is_flag=True, help="Print the API request instead of sending it.")
+def by_version(package, credentials, days, kind, metric, as_csv, dry_run):
+    """Crash/ANR rate broken down by app version.
+
+    The app-wide series in `crash-rate` cannot answer "is the release we just
+    shipped better?" — a partial rollout is swamped by the install base still
+    on the old build, so a genuinely fixed version barely moves the aggregate
+    for weeks. Breaking the same metric down by `versionCode` compares the
+    versions directly, which is the question people actually mean.
+    """
+    metric_set, default_metric, label = METRIC_SETS[kind]
+    metric = metric or default_metric
+
+    if dry_run:
+        import json
+        today = date.today()
+        body = _build_body({"year": today.year, "month": today.month, "day": today.day},
+                           days, metric, ("versionCode",))
+        click.echo(f"POST {BASE}/apps/{package}/{metric_set}:query")
+        click.echo(json.dumps(body, indent=2))
+        return
+
+    rows, end_dt = fetch_rows(package, metric_set, metric, days, credentials,
+                              dimensions=("versionCode",))
+    warning = _freshness_warning(end_dt)
+    if warning:
+        click.echo(warning, err=True)
+
+    # Group by raw versionCode (stable key); track best label seen for display.
+    # Grouping by _dimension_value would split one release into multiple buckets
+    # if Play omits or changes valueLabel between rows for the same versionCode.
+    per_version: dict[str, list[float]] = {}
+    version_labels: dict[str, str] = {}
+    for row in rows:
+        version_code = _dimension_raw(row, "versionCode")
+        if version_code is None:
+            continue
+        display = _dimension_value(row, "versionCode")
+        if display and display != version_code:
+            version_labels[version_code] = display
+        for _, value in _parse_rows([row], metric):
+            if value is not None:
+                per_version.setdefault(version_code, []).append(value)
+
+    if not per_version:
+        click.echo("No per-version data returned.")
+        return
+
+    # Newest versionCode last: sort numerically when we can, else lexically.
+    def _sort_key(code: str) -> tuple:
+        return (0, int(code)) if code.isdigit() else (1, 0)
+
+    def _display(code: str) -> str:
+        return version_labels.get(code, code)
+
+    summary_rows = [
+        (_display(code), len(values), sum(values) / len(values))
+        for code, values in sorted(per_version.items(), key=lambda kv: _sort_key(kv[0]))
+    ]
+
+    if as_csv:
+        import sys
+        w = csv.writer(sys.stdout, lineterminator="\n")
+        w.writerow(["version", "days", "mean"])
+        for version, n, mean in summary_rows:
+            w.writerow([version, n, repr(mean)])
+        return
+
+    click.echo(f"{label} ({metric}) by version for {package}, last {days} days")
+    width = max(len(v) for v, _, _ in summary_rows)
+    for version, n, mean in summary_rows:
+        click.echo(f"  {version:<{width}}  {mean:>8.4%}  ({n} day(s) of data)")
 
 
 @cli.command("summary")
