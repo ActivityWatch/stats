@@ -35,11 +35,16 @@ shown in the Play Console headline).
 from __future__ import annotations
 
 import csv
+import json
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import click
 import requests
+
+from crash_reports import (build_snapshot, compare_snapshots, json_text,
+                           persist_snapshot, render_markdown)
 
 SCOPE = "https://www.googleapis.com/auth/playdeveloperreporting"
 BASE = "https://playdeveloperreporting.googleapis.com/v1beta1"
@@ -251,25 +256,54 @@ def anr_rate(package, credentials, days, metric, as_csv, update_path, dry_run):
 
 def fetch_error_issues(package, issue_type, limit, credentials):
     """Top error clusters (crash/ANR) with cause, location, and report count."""
+    issues, token, _ = fetch_error_clusters(package, issue_type, limit, credentials)
+    return issues, token
+
+
+def _interval_params(query):
+    params = {}
+    if query:
+        for key, name in (("start_time", "startTime"), ("end_time", "endTime")):
+            dt = datetime.fromisoformat(query[key].replace("Z", "+00:00"))
+            for field, value in (("year", dt.year), ("month", dt.month),
+                                 ("day", dt.day), ("hours", dt.hour)):
+                params[f"interval.{name}.{field}"] = value
+            params[f"interval.{name}.timeZone.id"] = "UTC"
+    return params
+
+
+def fetch_error_clusters(package, issue_type, limit, credentials, query=None):
     token = _access_token(credentials)
     base = f"{BASE}/apps/{package}"
-    params = {"pageSize": limit}
+    params = {"pageSize": limit, "orderBy": "errorReportCount desc", **_interval_params(query)}
     if issue_type and issue_type != "all":
         params["filter"] = f"errorIssueType = {issue_type.upper()}"
-    r = requests.get(f"{base}/errorIssues:search",
-                     headers={"Authorization": f"Bearer {token}"}, params=params, timeout=30)
-    r.raise_for_status()
-    return r.json().get("errorIssues", []), token
+    issues = []
+    while True:
+        r = requests.get(f"{base}/errorIssues:search",
+                         headers={"Authorization": f"Bearer {token}"}, params=params, timeout=30)
+        r.raise_for_status()
+        response = r.json()
+        issues.extend(response.get("errorIssues", []))
+        next_page = response.get("nextPageToken")
+        if len(issues) >= limit or not next_page:
+            return issues[:limit], token, bool(next_page or len(issues) > limit)
+        params["pageToken"] = next_page
 
 
 def fetch_sample_stacktrace(package, issue_id, token):
+    return fetch_sample_report(package, issue_id, token).get("reportText", "")
+
+
+def fetch_sample_report(package, issue_id, token, query=None):
     base = f"{BASE}/apps/{package}"
     r = requests.get(f"{base}/errorReports:search",
                      headers={"Authorization": f"Bearer {token}"},
-                     params={"pageSize": 1, "filter": f"errorIssueId = {issue_id}"}, timeout=30)
+                     params={"pageSize": 1, "filter": f"errorIssueId = {issue_id}",
+                             **_interval_params(query)}, timeout=30)
     r.raise_for_status()
     reports = r.json().get("errorReports", [])
-    return reports[0].get("reportText", "") if reports else ""
+    return reports[0] if reports else {}
 
 
 @cli.command("errors")
@@ -277,10 +311,62 @@ def fetch_sample_stacktrace(package, issue_id, token):
 @click.option("--credentials", envvar="GOOGLE_APPLICATION_CREDENTIALS")
 @click.option("--type", "issue_type", default="crash",
               type=click.Choice(["crash", "anr", "all"]), show_default=True)
-@click.option("--limit", default=10, show_default=True)
+@click.option("--limit", default=10, type=click.IntRange(1, 1000), show_default=True)
 @click.option("--stacktraces", is_flag=True, help="Include a sample stacktrace per cluster.")
-def errors(package, credentials, issue_type, limit, stacktraces):
+@click.option("--json", "as_json", is_flag=True, help="Emit a versioned, sanitized JSON snapshot.")
+@click.option("--markdown", is_flag=True, help="Emit a ranked Markdown report.")
+@click.option("--days", default=1, type=click.IntRange(1, 30), show_default=True,
+              help="UTC window for structured reports.")
+@click.option("--update-dir", type=click.Path(path_type=Path, file_okay=False),
+              help="Persist current JSON/Markdown and immutable snapshot history.")
+@click.option("--previous", type=click.Path(path_type=Path, exists=True, dir_okay=False),
+              help="Compare with this snapshot (otherwise update-dir/current.json).")
+@click.option("--dispositions", type=click.Path(path_type=Path, exists=True, dir_okay=False),
+              help="Identity-keyed status/issue_url/note JSON (otherwise update-dir/dispositions.json).")
+def errors(package, credentials, issue_type, limit, stacktraces, as_json, markdown,
+           days, update_dir, previous, dispositions):
     """Top crash/ANR clusters (cause, location, report count) from Android vitals."""
+    if as_json and markdown:
+        raise click.UsageError("Choose --json or --markdown, not both.")
+    if previous or dispositions:
+        if not (as_json or markdown or update_dir):
+            raise click.UsageError("--previous/--dispositions require structured output.")
+    if as_json or markdown or update_dir:
+        now = datetime.now(timezone.utc)
+        end = now.replace(minute=0, second=0, microsecond=0)
+        query = {"days": days, "type": issue_type, "limit": limit,
+                 "start_time": (end - timedelta(days=days)).isoformat().replace("+00:00", "Z"),
+                 "end_time": end.isoformat().replace("+00:00", "Z")}
+        if update_dir:
+            previous = previous or (update_dir / "current.json")
+            dispositions = dispositions or (update_dir / "dispositions.json")
+        try:
+            old = json.loads(previous.read_text()) if previous and previous.exists() else None
+            decisions = (json.loads(dispositions.read_text())
+                         if dispositions and dispositions.exists() else {})
+            if not isinstance(decisions, dict) or any(
+                    not isinstance(row, dict) or set(row) - {"status", "issue_url", "note"}
+                    or any(not isinstance(value, str) for value in row.values())
+                    for row in decisions.values()):
+                raise ValueError("Dispositions must map identities to status/issue_url/note strings")
+            issues, token, truncated = fetch_error_clusters(
+                package, issue_type, limit, credentials, query)
+            samples = {issue["name"]: fetch_sample_report(
+                package, issue["name"].split("/")[-1], token, query)
+                for issue in issues if issue.get("name")} if stacktraces else {}
+            snapshot = build_snapshot(package, query, issues, samples,
+                                      now.isoformat().replace("+00:00", "Z"), truncated, decisions)
+            snapshot["comparison"] = compare_snapshots(snapshot, old)
+            if update_dir:
+                archive = persist_snapshot(update_dir, snapshot)
+                click.echo(f"Saved {archive}", err=True)
+        except (ValueError, OSError, requests.RequestException) as exc:
+            raise click.ClickException(str(exc)) from exc
+        if as_json:
+            click.echo(json_text(snapshot), nl=False)
+        elif markdown or not update_dir:
+            click.echo(render_markdown(snapshot), nl=False)
+        return
     issues, token = fetch_error_issues(package, issue_type, limit, credentials)
     if not issues:
         click.echo("No error issues found.")

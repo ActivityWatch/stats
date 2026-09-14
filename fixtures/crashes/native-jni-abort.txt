@@ -1,0 +1,8 @@
+00:00:00.000 I SyncInterface: [redacted operation]
+00:00:00.001 F DEBUG   : signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+00:00:00.001 F DEBUG   : pid: 12345, tid: 12346, name: [redacted thread]
+00:00:00.001 F DEBUG   :   #00 pc 0000000000000010  libc.so (abort+156)
+00:00:00.001 F DEBUG   :   #01 pc 0000000000000020  base.apk (offset 0x1000)
+00:00:00.001 F DEBUG   :   #15 pc 0000000000000030  base.apk (Java_net_activitywatch_android_SyncInterface_syncBoth+260)
+00:00:00.001 F DEBUG   :   #25 ... SyncInterface$syncBothAsync$2.invoke
+00:00:00.001 F DEBUG   :   #33 ... SyncInterface.performSyncAsync$lambda$4

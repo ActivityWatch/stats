@@ -1,0 +1,4 @@
+Exception java.lang.NullPointerException: [redacted message]
+  at net.activitywatch.android.watcher.ChromeWatcher.onAccessibilityEvent (ChromeWatcher.kt:76)
+  at android.accessibilityservice.AccessibilityService$2.onAccessibilityEvent (AccessibilityService.java:2744)
+  ...

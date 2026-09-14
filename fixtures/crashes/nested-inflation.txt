@@ -1,0 +1,12 @@
+FATAL EXCEPTION: main
+Process: net.activitywatch.android, PID: 12345
+java.lang.RuntimeException: [redacted activity and message]
+  android.view.InflateException: [redacted resource and message]
+    at android.app.ActivityThread.performLaunchActivity(ActivityThread.java:4164)
+    at android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:4322)
+    ...
+Caused by: java.lang.UnsupportedOperationException: [redacted attribute and theme]
+    at android.content.res.TypedArray.getColorStateList(TypedArray.java:600)
+    at android.widget.TextView.readTextAppearance(TextView.java:4535)
+    at android.widget.TextView.<init>(TextView.java:1468)
+    at androidx.appcompat.widget.AppCompatTextView.<init>(AppCompatTextView.java:115)
