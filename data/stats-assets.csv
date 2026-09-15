@@ -6782,3 +6782,17 @@ timestamp,tag,asset,platform,downloads
 2026-09-14T21:27:42.355380+00:00,v0.14.0b5,activitywatch-v0.14.0b5-macos-arm64.zip,macos,20
 2026-09-14T21:27:42.355380+00:00,v0.14.0b5,activitywatch-v0.14.0b5-windows-x86_64-setup.exe,windows,312
 2026-09-14T21:27:42.355380+00:00,v0.14.0b5-research,activitywatch-tauri-research-0.14.0b5-windows-x86_64.exe,windows,6
+2026-09-15T03:22:31.709261+00:00,v0.12.1,activitywatch-v0.12.1-windows-x86_64-setup.exe,windows,23389
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,37457
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,9370
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,100297
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,142034
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,12111
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,312921
+2026-09-15T03:22:31.709261+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,30384
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5,activitywatch-linux-x86_64.AppImage,linux,47
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5,activitywatch-tauri-v0.14.0b5-macos-arm64.dmg,macos,103
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5,activitywatch-v0.14.0b5-linux-x86_64.zip,linux,55
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5,activitywatch-v0.14.0b5-macos-arm64.zip,macos,21
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5,activitywatch-v0.14.0b5-windows-x86_64-setup.exe,windows,315
+2026-09-15T03:22:31.709261+00:00,v0.14.0b5-research,activitywatch-tauri-research-v0.14.0b5-windows-x86_64.zip,windows,6
