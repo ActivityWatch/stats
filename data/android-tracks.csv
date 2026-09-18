@@ -83,3 +83,7 @@ date,track,status,user_fraction,version_codes,release_name
 2026-09-17,beta,completed,1.0,38,0.14.0dev202608101
 2026-09-17,internal,completed,1.0,43,0.14.2b1
 2026-09-17,production,completed,1.0,42,0.14.1
+2026-09-18,alpha,completed,1.0,3,0.2.0
+2026-09-18,beta,completed,1.0,38,0.14.0dev202608101
+2026-09-18,internal,completed,1.0,44,0.14.2b2
+2026-09-18,production,completed,1.0,42,0.14.1
