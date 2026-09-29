@@ -42,6 +42,13 @@ def list_rating_files(bucket: str, package: str, token: str) -> list[str]:
     return sorted(n for n in names if n.endswith("_overview.csv"))
 
 
+def _is_valid_rating(value: str) -> bool:
+    try:
+        return 1.0 <= float(value) <= 5.0
+    except ValueError:
+        return False
+
+
 def fetch_rating_series(bucket: str, package: str, credentials) -> dict[str, str]:
     token = _token(credentials)
     series: dict[str, str] = {}
@@ -50,7 +57,9 @@ def fetch_rating_series(bucket: str, package: str, credentials) -> dict[str, str
         for row in csv.DictReader(io.StringIO(text)):
             date = (row.get("Date") or "").strip()
             value = (row.get(METRIC) or "").strip()
-            if date and value:
+            # Play Console emits 0 on days it has no rating data (not a real
+            # rating; valid ratings are 1-5). Skip so it isn't plotted as a spike.
+            if date and value and _is_valid_rating(value):
                 series[date] = value
     return series
 

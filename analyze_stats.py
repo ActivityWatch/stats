@@ -46,6 +46,7 @@ def _load_android_rating():
     df = pd.read_csv("data/android-ratings.csv", index_col="date", parse_dates=True)
     df = df.tz_localize(tz=timezone.utc)
     df.columns = ["Android Play Store rating"]
+    df = df[df.iloc[:, 0] > 0]  # 0 = "no data" placeholder, not a rating
     return df
 
 
