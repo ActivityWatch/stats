@@ -152,7 +152,7 @@ def test_by_version_csv_escapes_comma_in_label(monkeypatch, tmp_path):
         ["by-version", "--as-csv", "--package", "net.activitywatch.android"],
     )
     assert result.exit_code == 0, result.output
-    rows = list(csv.reader(_io.StringIO(result.output)))
+    rows = list(csv.reader(_io.StringIO(result.stdout)))
     # Header + one data row; the label's commas must not create extra columns
     assert rows[0] == ["version", "days", "mean"]
     assert len(rows[1]) == 3
