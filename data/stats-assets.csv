@@ -9127,3 +9127,16 @@ timestamp,tag,asset,platform,downloads
 2026-10-02T11:52:06.862456+00:00,v0.14.0b8,activitywatch-v0.14.0b8-windows-x86_64-setup.exe,windows,622
 2026-10-02T11:52:06.862456+00:00,v0.14.0b8,activitywatch-v0.14.0b8-windows-x86_64.zip,windows,96
 2026-10-02T11:52:06.862456+00:00,v0.8.0b7,activitywatch-v0.8.0b7-macos-x86_64.zip,macos,1868
+2026-10-02T17:26:45.047204+00:00,v0.12.2,activitywatch-v0.12.2-windows-x86_64.zip,windows,12332
+2026-10-02T17:26:45.047204+00:00,v0.12.3b18,activitywatch-v0.12.3b18-linux-x86_64.zip,linux,2635
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-linux-x86_64.AppImage,linux,39050
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.deb,linux,11288
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-linux-x86_64.zip,linux,103105
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.dmg,macos,148016
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-macos-x86_64.zip,macos,12443
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64-setup.exe,windows,324517
+2026-10-02T17:26:45.047204+00:00,v0.13.2,activitywatch-v0.13.2-windows-x86_64.zip,windows,31838
+2026-10-02T17:26:45.047204+00:00,v0.14.0b8,activitywatch-v0.14.0b8-linux-x86_64.deb,linux,174
+2026-10-02T17:26:45.047204+00:00,v0.14.0b8,activitywatch-v0.14.0b8-macos-arm64.dmg,macos,651
+2026-10-02T17:26:45.047204+00:00,v0.14.0b8,activitywatch-v0.14.0b8-macos-arm64.zip,macos,42
+2026-10-02T17:26:45.047204+00:00,v0.14.0b8,activitywatch-v0.14.0b8-windows-x86_64-setup.exe,windows,626
