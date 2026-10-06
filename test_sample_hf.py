@@ -118,3 +118,17 @@ def test_trim_keeps_each_asset_series(tmp_path, monkeypatch):
         ("b.dmg", "7"),
         ("a.exe", "2"),
     ]
+
+
+def test_lock_excludes_a_second_holder(tmp_path, monkeypatch):
+    import pytest
+
+    monkeypatch.setattr(sample_hf, "HF_DIR", str(tmp_path))
+    monkeypatch.setattr(sample_hf, "LOCK_PATH", str(tmp_path / ".lock"))
+    with sample_hf.exclusive_lock():
+        with open(sample_hf.LOCK_PATH, "a+") as other:
+            assert not sample_hf._try_lock(other)
+    with pytest.raises(SystemExit):
+        with sample_hf.exclusive_lock():
+            with sample_hf.exclusive_lock():
+                pass

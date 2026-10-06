@@ -23,7 +23,6 @@ with `--trim MINUTES` (keeps the last row per series per MINUTES-wide bucket).
 
 import argparse
 import csv
-import fcntl
 import os
 import time
 from contextlib import contextmanager
@@ -41,15 +40,29 @@ ASSET_FIELDS = ["timestamp", "tag", "asset", "platform", "downloads"]
 LOCK_PATH = os.path.join(HF_DIR, ".lock")
 
 
+def _try_lock(f) -> bool:
+    """Non-blocking exclusive lock on an open file (fcntl on Unix, msvcrt on Windows)."""
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
+
+
 @contextmanager
 def exclusive_lock():
     """Held by a running sampler for its lifetime, and by --trim, so trimming
     can never race with appends."""
     os.makedirs(HF_DIR, exist_ok=True)
-    with open(LOCK_PATH, "w") as f:
-        try:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
+    with open(LOCK_PATH, "a+") as f:
+        if not _try_lock(f):
             raise SystemExit(f"another sample_hf.py is running ({LOCK_PATH} is locked)")
         yield
 
