@@ -24,6 +24,7 @@ with `--trim MINUTES` (keeps the last row per series per MINUTES-wide bucket).
 import argparse
 import csv
 import os
+import sys
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -43,7 +44,7 @@ LOCK_PATH = os.path.join(HF_DIR, ".lock")
 def _try_lock(f) -> bool:
     """Non-blocking exclusive lock on an open file (fcntl on Unix, msvcrt on Windows)."""
     try:
-        if os.name == "nt":
+        if sys.platform == "win32":
             import msvcrt
 
             msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
