@@ -4,6 +4,8 @@ import click
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from collect_stats import is_updater_asset
+
 
 def _load_downloads():
     df = pd.read_csv("data/stats.csv", index_col="timestamp", parse_dates=True)
@@ -50,16 +52,33 @@ def _load_android_rating():
     return df
 
 
-def _load_assets():
+def _load_assets(include_updater: bool = False):
     """Raw per-asset download counts over time (long format).
 
     Columns: timestamp, tag, asset, platform, downloads. The collector logs an
     asset only when its count changes, so this is sparse — see _asset_series()
     for the forward-filled reconstruction.
+
+    Tauri updater assets (latest.json polls, .sig, .app.tar.gz) are dropped
+    unless `include_updater`: they count update checks, not downloads. See
+    updater_checks().
     """
     df = pd.read_csv("data/stats-assets.csv")
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    if not include_updater:
+        df = df[~df["asset"].map(is_updater_asset)]
     return df
+
+
+def updater_checks(df=None):
+    """Time series of Tauri update checks (latest.json fetches) per release.
+
+    Every running aw-tauri polls releases/latest/download/latest.json, so the
+    growth rate of the current release's count tracks active Tauri installs.
+    """
+    df = _load_assets(include_updater=True) if df is None else df
+    df = df[df["asset"] == "latest.json"]
+    return _asset_series(df)
 
 
 def _asset_series(df=None):
