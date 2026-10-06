@@ -28,6 +28,9 @@ The following is manually updated:
  - `chrome-weekly-users.csv` - Chrome extension weekly active users
  - `firefox-daily-users.csv` - Firefox extension daily active users
  - `notes.csv` - Manual entries of major/interesting events
+ - `launch-events.csv` - Timestamped launch posts (UTC; channel, url, note), to line up with the
+   high-resolution download samples. During a launch window (see `WINDOW_END` in
+   `.github/workflows/collect-stats.yml`) stats are collected every ~10 minutes instead of every 6 hours.
 
 
 ## Android vitals
