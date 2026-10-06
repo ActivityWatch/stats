@@ -23,8 +23,10 @@ with `--trim MINUTES` (keeps the last row per series per MINUTES-wide bucket).
 
 import argparse
 import csv
+import fcntl
 import os
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 import requests
@@ -36,6 +38,20 @@ STATS_CSV = os.path.join(HF_DIR, "stats.csv")
 ASSETS_CSV = os.path.join(HF_DIR, "stats-assets.csv")
 STATS_FIELDS = ["timestamp", "downloads", "stars"]
 ASSET_FIELDS = ["timestamp", "tag", "asset", "platform", "downloads"]
+LOCK_PATH = os.path.join(HF_DIR, ".lock")
+
+
+@contextmanager
+def exclusive_lock():
+    """Held by a running sampler for its lifetime, and by --trim, so trimming
+    can never race with appends."""
+    os.makedirs(HF_DIR, exist_ok=True)
+    with open(LOCK_PATH, "w") as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit(f"another sample_hf.py is running ({LOCK_PATH} is locked)")
+        yield
 
 
 class ConditionalClient:
@@ -178,21 +194,33 @@ def main() -> None:
     )
     args = p.parse_args()
 
-    if args.trim:
-        trim(args.trim)
+    if args.interval <= 0:
+        p.error("--interval must be positive")
+    if args.trim is not None:
+        if args.trim <= 0:
+            p.error("--trim must be a positive number of minutes")
+        with exclusive_lock():
+            trim(args.trim)
         return
     token = os.getenv("GITHUB_TOKEN")
     if not token and args.interval < 120:
         p.error(
             "set GITHUB_TOKEN for intervals under 120 s (unauthenticated limit is 60/h)"
         )
-    until = (
-        datetime.fromisoformat(args.until).replace(tzinfo=timezone.utc)
-        if args.until
-        else None
-    )
-    os.makedirs(HF_DIR, exist_ok=True)
-    client = ConditionalClient(token)
+    until = None
+    if args.until:
+        until = datetime.fromisoformat(args.until)
+        # Naive times are UTC; times with an offset are converted.
+        until = (
+            until.replace(tzinfo=timezone.utc)
+            if until.tzinfo is None
+            else until.astimezone(timezone.utc)
+        )
+    with exclusive_lock():
+        run(ConditionalClient(token), args.interval, until, args.once)
+
+
+def run(client, interval: int, until, once: bool) -> None:
     state = load_state()
     while True:
         started = time.monotonic()
@@ -204,9 +232,9 @@ def main() -> None:
             )
         except requests.RequestException as e:
             print(f"sample failed, retrying next interval: {e}", flush=True)
-        if args.once or (until and datetime.now(tz=timezone.utc) >= until):
+        if once or (until and datetime.now(tz=timezone.utc) >= until):
             return
-        time.sleep(max(0.0, args.interval - (time.monotonic() - started)))
+        time.sleep(max(0.0, interval - (time.monotonic() - started)))
 
 
 if __name__ == "__main__":

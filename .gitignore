@@ -14,3 +14,4 @@ data/sponsors/
 data/android/*
 !data/android/installed.csv
 data/spreadsheet.csv
+data/hf/.lock
