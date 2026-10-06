@@ -28,10 +28,12 @@ The following is manually updated:
  - `chrome-weekly-users.csv` - Chrome extension weekly active users
  - `firefox-daily-users.csv` - Firefox extension daily active users
  - `notes.csv` - Manual entries of major/interesting events
- - `launch-events.csv` - Timestamped launch posts (UTC; channel, url, note), to line up with the
-   high-resolution download samples. During a launch window,
-   `.github/workflows/collect-launch.yml` adds best-effort ~10-minute samples on top of the 6-hourly
-   collection and disables itself after its `WINDOW_END`.
+ - `launch-events.csv` - Timestamped launch posts (UTC; channel, url, note), to line up with
+   high-resolution samples.
+ - `hf/` - High-resolution samples from `sample_hf.py` (same schemas as `stats.csv` /
+   `stats-assets.csv`, change-only rows). Run it anywhere during a launch and submit the files in a PR:
+   `GITHUB_TOKEN=$(gh auth token) uv run python3 sample_hf.py --until 2026-10-20`
+   (default 60 s interval; `--trim MINUTES` coarsens before submitting).
 
 
 ## Android vitals
