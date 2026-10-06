@@ -91,7 +91,8 @@ def test_conditional_client_caches_pages_and_304s():
         if (headers or {}).get("If-None-Match"):
             return FakeResponse(304)
         if url == page1:
-            return FakeResponse(200, [rel("v2", 5)], etag="e1", next_url=page2)
+            draft = {**rel("v3", 9), "draft": True}
+            return FakeResponse(200, [draft, rel("v2", 5)], etag="e1", next_url=page2)
         return FakeResponse(200, [rel("v1", 3)], etag="e2")
 
     client = sample_hf.ConditionalClient(None)

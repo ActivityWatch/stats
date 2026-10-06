@@ -99,6 +99,9 @@ class ConditionalClient:
             releases, url = self.get(url)
             assert isinstance(releases, list)
             for release in releases:
+                if release.get("draft"):
+                    # Only visible to tokens with write access; not public downloads.
+                    continue
                 for a in release["assets"]:
                     rows.append(
                         {
