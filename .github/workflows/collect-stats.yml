@@ -10,7 +10,15 @@ on:
   #pull_requests:
   #  branches: [ master ]
   schedule:
-    - cron:  '0 */6 * * *'
+    # Every 10 minutes; the "Decide whether to collect" step below only collects
+    # every 6 hours outside a launch window. GitHub may delay scheduled runs, so
+    # every row carries its own timestamp.
+    - cron:  '*/10 * * * *'
+
+# Never let two collections race on the push.
+concurrency:
+  group: collect-stats
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -21,13 +29,32 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - name: Decide whether to collect
+      id: cadence
+      run: |
+        # High-resolution window (UTC) around the v0.14.0 launch; 10-minute
+        # samples correlate downloads with posts (data/launch-events.csv).
+        # Outside it, collect only if the last sample is ~6 h old.
+        WINDOW_END=2026-10-27
+        now=$(date -u +%s)
+        last=$(tail -n 1 data/stats.csv | cut -d, -f1)
+        age=$(( now - $(date -u -d "$last" +%s) ))
+        if [ "$GITHUB_EVENT_NAME" != "schedule" ] || [ "$now" -lt "$(date -u -d "$WINDOW_END" +%s)" ] || [ "$age" -ge 21000 ]; then
+          echo "collect=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "collect=false" >> "$GITHUB_OUTPUT"
+          echo "Outside the launch window and last sample is only ${age}s old; skipping."
+        fi
     - name: Install uv
+      if: steps.cadence.outputs.collect == 'true'
       uses: astral-sh/setup-uv@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
+      if: steps.cadence.outputs.collect == 'true'
       run: uv sync
     - name: Collect and append stats
+      if: steps.cadence.outputs.collect == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -42,12 +69,16 @@ jobs:
         # breakdowns). Appends only assets whose count changed since last logged.
         uv run python3 collect_stats.py --assets --csv >> data/stats-assets.csv
     - name: Commit
+      if: steps.cadence.outputs.collect == 'true'
       run: |
         git config --local user.email "noreply@github.com"
         git config --local user.name "GitHub Action"
         git add data/stats.csv data/releases.csv data/stats-assets.csv
         git commit -m "chore: update stats"
+        # The Play Console workflow also pushes to master; rebase onto it.
+        git pull --rebase origin master
     - name: Push changes
+      if: steps.cadence.outputs.collect == 'true'
       uses: ad-m/github-push-action@fe38f0a751bf9149f0270cc1fe20bf9156854365
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

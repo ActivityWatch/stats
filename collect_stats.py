@@ -78,10 +78,24 @@ def downloads_by_asset() -> list[dict]:
     return rows
 
 
+def is_updater_asset(asset_name: str) -> bool:
+    """Assets fetched by the Tauri in-app updater, not by people downloading.
+
+    `latest.json` is polled by every running aw-tauri install (via
+    releases/latest/download/latest.json), and the `.sig` / `.app.tar.gz` files
+    are what the updater downloads to apply an update. Their counts measure
+    update checks and applied updates, so they are kept in the per-asset series
+    but excluded from the headline download total.
+    """
+    return asset_name == "latest.json" or asset_name.endswith((".sig", ".app.tar.gz"))
+
+
 def downloads(verbose=False) -> int:
-    """Total downloads across all release assets."""
+    """Total downloads across all release assets, excluding updater traffic."""
     total = 0
     for r in downloads_by_asset():
+        if is_updater_asset(r["asset"]):
+            continue
         if verbose:
             print(f' - {r["tag"]} [{r["platform"]}] {r["asset"]}: {r["downloads"]}')
         total += r["downloads"]
