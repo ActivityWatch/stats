@@ -58,10 +58,13 @@ jobs:
         # android-tracks.csv may not exist yet if play_tracks.py lacked permission
         [ -f data/android-tracks.csv ] && git add data/android-tracks.csv || true
         git diff --cached --quiet || git commit -m "chore: update Play Console stats"
-        # collect-stats pushes every ~10 min during launch windows; rebase onto it.
-        git pull --rebase origin master
     - name: Push changes
       if: env.HAS_SA == 'true'
-      uses: ad-m/github-push-action@fe38f0a751bf9149f0270cc1fe20bf9156854365
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Both stats workflows push to master; retry on a rejected push.
+        for i in 1 2 3 4 5; do
+          git push origin HEAD:master && exit 0
+          sleep $((i * 5))
+          git pull --rebase origin master
+        done
+        exit 1
