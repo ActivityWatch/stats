@@ -29,8 +29,9 @@ The following is manually updated:
  - `firefox-daily-users.csv` - Firefox extension daily active users
  - `notes.csv` - Manual entries of major/interesting events
  - `launch-events.csv` - Timestamped launch posts (UTC; channel, url, note), to line up with the
-   high-resolution download samples. During a launch window (see `WINDOW_END` in
-   `.github/workflows/collect-stats.yml`) stats are collected every ~10 minutes instead of every 6 hours.
+   high-resolution download samples. During a launch window,
+   `.github/workflows/collect-launch.yml` adds best-effort ~10-minute samples on top of the 6-hourly
+   collection and disables itself after its `WINDOW_END`.
 
 
 ## Android vitals
