@@ -208,3 +208,8 @@ date,track,status,user_fraction,version_codes,release_name
 2026-10-16,internal,completed,1.0,49,0.14.4b1
 2026-10-16,production,completed,1.0,42,0.14.1
 2026-10-16,production,inProgress,0.5,48,0.14.3
+2026-10-17,alpha,completed,1.0,3,0.2.0
+2026-10-17,beta,completed,1.0,38,0.14.0dev202608101
+2026-10-17,internal,completed,1.0,49,0.14.4b1
+2026-10-17,production,completed,1.0,42,0.14.1
+2026-10-17,production,inProgress,0.5,48,0.14.3
