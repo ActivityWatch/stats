@@ -91,6 +91,9 @@ def load_github_sponsors_csv(filename: str) -> list[Sponsor]:
     return sponsors
 
 
+ANONYMOUS_OC_SLUG_PREFIXES = ("guest-", "incognito-")
+
+
 def load_opencollective_csv(filename: str) -> list[Sponsor]:
     """The CSV looks like this:
 
@@ -106,9 +109,12 @@ def load_opencollective_csv(filename: str) -> list[Sponsor]:
     sponsors = []
     handles = df["oppositeAccountSlug"].unique()
     for handle in handles:
+        # An OpenCollective slug is not a GitHub handle: link it to OpenCollective.
+        # guest-*/incognito-* slugs are anonymous contributors with no public profile.
+        is_anonymous = handle.startswith(ANONYMOUS_OC_SLUG_PREFIXES)
         sponsor = Sponsor(
             name="placeholder",
-            github_username=handle,
+            url=None if is_anonymous else f"https://opencollective.com/{handle}",
             donated=[],
             source="opencollective",
         )
@@ -184,6 +190,15 @@ def load_patreon_csv(filename: str) -> list[Sponsor]:
     return sponsors
 
 
+def format_ident(sponsor: Sponsor) -> str:
+    """Markdown name cell: GitHub handle link, else profile URL, else plain name."""
+    if sponsor.github_username:
+        return f"{sponsor.name} ([@{sponsor.github_username}](https://github.com/{sponsor.github_username}))"
+    if sponsor.url:
+        return f"[{sponsor.name}]({sponsor.url})"
+    return sponsor.name
+
+
 if __name__ == "__main__":
     now = datetime.now(tz=timezone.utc)
 
@@ -207,11 +222,7 @@ if __name__ == "__main__":
     print("| Name | Active? | Total Donated |")
     print("| ---- |:-------:| -------------:|")
     for sponsor in sponsors:
-        ident = f"{sponsor.name}"
-        if sponsor.github_username:
-            ident = f"{sponsor.name} ([@{sponsor.github_username}](https://github.com/{sponsor.github_username}))"
-        elif sponsor.url:
-            ident = f"[{sponsor.name}]({sponsor.url})"
+        ident = format_ident(sponsor)
 
         # active if last donation was less than 3 months ago
         last_donation: datetime = max(timestamp for _, _, timestamp in sponsor.donated)
