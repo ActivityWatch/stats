@@ -258,6 +258,18 @@ def test_connection_reset_is_retried(monkeypatch, sleeps):
     assert sleeps == [1]
 
 
+@pytest.mark.parametrize("error", [requests.exceptions.ReadTimeout,
+                                  requests.exceptions.ConnectTimeout])
+def test_timeout_retry_is_bounded(monkeypatch, sleeps, error):
+    calls: list[dict] = []
+    _patch(monkeypatch, "get", [error("timed out") for _ in range(3)], calls)
+
+    with pytest.raises(error):
+        vitals.fetch_sample_report("pkg", "4022a4eb", "token")
+    assert len(calls) == 3
+    assert sleeps == [1, 2]
+
+
 def test_ssl_misconfiguration_is_not_retried(monkeypatch, sleeps):
     """A bad certificate is not transient; retrying only delays the real error."""
     calls: list[dict] = []

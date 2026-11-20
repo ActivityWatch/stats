@@ -94,7 +94,7 @@ def _request(method: str, url: str, **kwargs):
 
     Play answers `503` often enough that a single bad response used to discard
     a whole day's collection (see `collect-play.yml`), so 5xx responses and
-    connection resets get `len(RETRY_SLEEPS) + 1` attempts in total. Everything
+    connection failures/timeouts get `len(RETRY_SLEEPS) + 1` attempts. Everything
     else stays fatal on the first response: 4xx/auth errors, a misconfigured
     TLS setup, and an unparseable body (the caller does the `.json()`).
 
@@ -107,7 +107,7 @@ def _request(method: str, url: str, **kwargs):
             resp = send(url, **kwargs)
             resp.raise_for_status()
             return resp
-        except requests.ConnectionError as exc:
+        except (requests.ConnectionError, requests.Timeout) as exc:
             # SSLError subclasses ConnectionError, but a bad certificate is a
             # configuration problem: retrying only delays the real error.
             if isinstance(exc, requests.exceptions.SSLError) or delay is None:
