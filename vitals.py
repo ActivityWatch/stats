@@ -37,6 +37,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -55,6 +56,12 @@ DEFAULT_CREDENTIALS = os.path.expanduser("~/.config/activitywatch/play-sa.json")
 # Days behind "today" past which the API's DAILY feed counts as stalled
 # rather than normally lagging.
 STALE_FRESHNESS_DAYS = 3
+
+# Sleep before the 2nd and 3rd attempt of a transient API call (3 attempts
+# total). Bounded on purpose: Play answers 503 often enough that one bad
+# response used to discard a whole day's collection, but a genuinely
+# unavailable API must still fail the run.
+RETRY_SLEEPS = (1, 2)
 
 # command -> (metric-set resource, default metric, human label)
 METRIC_SETS = {
@@ -80,6 +87,39 @@ def _access_token(credentials: str | None) -> str:
         creds, _ = google.auth.default(scopes=[SCOPE])
     creds.refresh(Request())
     return creds.token
+
+
+def _request(method: str, url: str, **kwargs):
+    """GET/POST a Play API resource, retrying only transient failures.
+
+    Play answers `503` often enough that a single bad response used to discard
+    a whole day's collection (see `collect-play.yml`), so 5xx responses and
+    connection failures/timeouts get `len(RETRY_SLEEPS) + 1` attempts. Everything
+    else stays fatal on the first response: 4xx/auth errors, a misconfigured
+    TLS setup, and an unparseable body (the caller does the `.json()`).
+
+    Returns the response with `raise_for_status()` already applied, so callers
+    keep parsing it exactly as before.
+    """
+    send = requests.get if method == "GET" else requests.post
+    for delay in RETRY_SLEEPS + (None,):
+        try:
+            resp = send(url, **kwargs)
+            resp.raise_for_status()
+            return resp
+        except (requests.ConnectionError, requests.Timeout) as exc:
+            # SSLError subclasses ConnectionError, but a bad certificate is a
+            # configuration problem: retrying only delays the real error.
+            if isinstance(exc, requests.exceptions.SSLError) or delay is None:
+                raise
+        except requests.HTTPError as exc:
+            # `response is not None` rather than truthiness: a 5xx response is
+            # falsey (Response.__bool__ is `ok`), and fakes may carry none.
+            response = exc.response
+            if delay is None or response is None or not 500 <= response.status_code < 600:
+                raise
+        time.sleep(delay)
+    raise AssertionError("unreachable")
 
 
 def _datetime(d: date, tz: dict | None) -> dict:
@@ -120,10 +160,10 @@ def _daily_freshness(base: str, metric_set: str, token: str) -> dict | None:
     reported in a specific timezone (e.g. America/Los_Angeles), so we anchor
     the query to it rather than guessing 'today'.
     """
-    r = requests.get(
-        f"{base}/{metric_set}", headers={"Authorization": f"Bearer {token}"}, timeout=30
+    r = _request(
+        "GET", f"{base}/{metric_set}",
+        headers={"Authorization": f"Bearer {token}"}, timeout=30,
     )
-    r.raise_for_status()
     for fr in r.json().get("freshnessInfo", {}).get("freshnesses", []):
         if fr.get("aggregationPeriod") == "DAILY":
             return fr.get("latestEndTime")
@@ -198,9 +238,7 @@ def fetch_rows(package, metric_set, metric, days, credentials,
     rows, page_token = [], None
     while True:
         payload = dict(body, **({"pageToken": page_token} if page_token else {}))
-        resp = requests.post(url, headers=headers, json=payload, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
+        data = _request("POST", url, headers=headers, json=payload, timeout=60).json()
         rows.extend(data.get("rows", []))
         page_token = data.get("nextPageToken")
         if not page_token:
@@ -364,9 +402,8 @@ def fetch_error_clusters(package, issue_type, limit, credentials, query=None):
         params["filter"] = f"errorIssueType = {issue_type.upper()}"
     issues = []
     while True:
-        r = requests.get(f"{base}/errorIssues:search",
-                         headers={"Authorization": f"Bearer {token}"}, params=params, timeout=30)
-        r.raise_for_status()
+        r = _request("GET", f"{base}/errorIssues:search",
+                     headers={"Authorization": f"Bearer {token}"}, params=params, timeout=30)
         response = r.json()
         issues.extend(response.get("errorIssues", []))
         next_page = response.get("nextPageToken")
@@ -381,11 +418,10 @@ def fetch_sample_stacktrace(package, issue_id, token):
 
 def fetch_sample_report(package, issue_id, token, query=None):
     base = f"{BASE}/apps/{package}"
-    r = requests.get(f"{base}/errorReports:search",
-                     headers={"Authorization": f"Bearer {token}"},
-                     params={"pageSize": 1, "filter": f"errorIssueId = {issue_id}",
-                             **_interval_params(query)}, timeout=30)
-    r.raise_for_status()
+    r = _request("GET", f"{base}/errorReports:search",
+                 headers={"Authorization": f"Bearer {token}"},
+                 params={"pageSize": 1, "filter": f"errorIssueId = {issue_id}",
+                         **_interval_params(query)}, timeout=30)
     reports = r.json().get("errorReports", [])
     return reports[0] if reports else {}
 
